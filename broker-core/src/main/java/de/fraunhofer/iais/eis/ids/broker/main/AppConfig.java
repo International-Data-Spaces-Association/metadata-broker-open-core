@@ -52,7 +52,7 @@ public class AppConfig extends AppConfigTemplate {
                 repositoryFacade, catalogUri);
         selfDescriptionPersistence.setIndexing(indexing);
         ResourcePersistenceAndIndexing resourcePersistenceAndIndexing = new ResourcePersistenceAndIndexing(
-                repositoryFacade);
+                repositoryFacade, catalogUri);
         resourcePersistenceAndIndexing.setIndexing(indexing);
 
         if (contextDocumentUrl != null && !contextDocumentUrl.isEmpty()) {

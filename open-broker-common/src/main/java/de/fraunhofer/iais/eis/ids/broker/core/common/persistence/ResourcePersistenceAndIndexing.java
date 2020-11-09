@@ -5,12 +5,15 @@ import de.fraunhofer.iais.eis.Resource;
 import de.fraunhofer.iais.eis.ids.broker.core.common.impl.ResourcePersistenceAdapter;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.*;
+import org.apache.jena.query.QuerySolution;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 
+
 import java.io.IOException;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -19,18 +22,21 @@ import java.util.ArrayList;
  * This class takes care of persisting and indexing any changes to resources that are announced to the broker
  */
 public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
-    //private final Logger logger = LoggerFactory.getLogger(ResourcePersistenceAndIndexing.class);
     private final ResourceModelCreator resourceModelCreator = new ResourceModelCreator();
 
     private final RepositoryFacade repositoryFacade;
     private Indexing indexing = new NullIndexing();
 
+    private final URI componentCatalogUri;
+
+
     /**
      * Constructor
      * @param repositoryFacade repository (triple store) to which the modifications should be stored
      */
-    public ResourcePersistenceAndIndexing(RepositoryFacade repositoryFacade) {
+    public ResourcePersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri) {
         this.repositoryFacade = repositoryFacade;
+        this.componentCatalogUri = componentCatalogUri;
     }
 
     /**
@@ -111,15 +117,25 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      */
     @Override
     public void updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException {
-        if(!repositoryFacade.graphIsActive(connectorUri.toString()))
-        {
-            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not actively registered at this broker. Cannot update resource for this connector."));
+        if(!repositoryFacade.graphIsActive(connectorUri.toString())) {
+            connectorUri = URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
+            if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
+                throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not actively registered at this broker. Cannot update resource for this connector."));
+            }
         }
+
         //Try to remove the resource from Triple Store if it exists, so that it is updated properly.
         if(resourceExists(resource.getId())) {
-            //TODO: This ID does not exist anymore, as we are rewriting the IDs
             removeFromTriplestore(resource.getId(), connectorUri);
         }
+
+        //Try to search for a resource with a REST-like name pattern, matching this resource. If it exists, remove it before we add it again
+        try {
+            URI alteredResourceUri = tryGetResourceUri(connectorUri, resource.getId());
+            removeFromTriplestore(alteredResourceUri, connectorUri);
+        }
+        catch (RejectMessageException ignored) {}
+
         try {
             URI catalogUri = getConnectorCatalog(connectorUri);
             addToTriplestore(resource, connectorUri, catalogUri);
@@ -132,6 +148,16 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         }
     }
 
+    private URI tryGetResourceUri(URI connectorUri, URI resourceUri) throws RejectMessageException {
+        String queryString = "PREFIX ids: <https://w3id.org/idsa/core/> SELECT ?uri FROM NAMED <" + connectorUri.toString() + "> WHERE { GRAPH ?g { ?uri a ids:Resource . FILTER regex( str(?uri), \"" + resourceUri.hashCode() + "\" ) } } ";
+        ArrayList<QuerySolution> solution = repositoryFacade.selectQuery(queryString);
+        if(solution != null && !solution.isEmpty())
+        {
+            return URI.create(solution.get(0).get("uri").asResource().getURI());
+        }
+        throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The requested Resource could not be found"));
+    }
+
     /**
      * Function to remove a given Resource from the indexing and the triple store
      * @param resourceUri A URI reference to the resource which is now unavailable
@@ -142,7 +168,18 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     //TODO: ResourceUnavailableValidationStrategy? Need to make sure that one cannot delete another connector's resources
     @Override
     public void unavailable(URI resourceUri, URI connectorUri) throws IOException, RejectMessageException {
-        //TODO: This ID does not exist anymore, as we are rewriting the IDs
+        URI initialResourceUri = resourceUri;
+        if(!repositoryFacade.graphIsActive(connectorUri.toString()))
+        {
+            connectorUri = URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
+        }
+        if(!repositoryFacade.graphIsActive(connectorUri.toString()))
+        {
+            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector from which you are trying to sign off a resource was not found or is not active."));
+        }
+        if(!resourceExists(resourceUri)) {
+            resourceUri = tryGetResourceUri(connectorUri, resourceUri);
+        }
         removeFromTriplestore(resourceUri, connectorUri);
         indexing.update(repositoryFacade.getConnectorFromTripleStore(connectorUri));
     }
@@ -166,9 +203,9 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      * @throws IOException thrown, if the changes could not be applied to the triple store
      * @throws RejectMessageException thrown, if the changes are illegal, or if an internal error has occurred
      */
-    private void addToTriplestore(Resource resource, URI connectorUri, URI catalogUri) throws IOException, RejectMessageException {
+    private void addToTriplestore(Resource resource, URI connectorUri, URI catalogUri) throws IOException, RejectMessageException, URISyntaxException {
 
-        ResourceModelCreator.InnerModel result = resourceModelCreator.setConnectorUri(connectorUri).toModel(resource.toRdf());
+        ResourceModelCreator.InnerModel result = resourceModelCreator.setConnectorUri(connectorUri).toModel(SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri, true));
 
         //Add a statement that this Resource is part of some catalog
         //?catalog ids:offeredResource ?resource
@@ -187,20 +224,24 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      */
     private void removeFromTriplestore(URI resourceUri, URI connectorUri) throws RejectMessageException {
         //Make sure no passivated graph is updated via ResourceXXXMessage
-        if(!repositoryFacade.graphIsActive(connectorUri.toString()))
-        {
-            throw new RejectMessageException(RejectionReason.NOT_FOUND, new Exception("The resource you are trying to delete was not found, or the graph owning the resource is not active (i.e. unavailable)."));
+        if(!repositoryFacade.graphIsActive(connectorUri.toString())) {
+            connectorUri = URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
+            if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
+                throw new RejectMessageException(RejectionReason.NOT_FOUND, new Exception("The resource you are trying to delete was not found, or the graph owning the resource is not active (i.e. unavailable)."));
+            }
+            //At this stage, we need to rewrite the URI of the resource to our REST-like scheme
+            resourceUri = tryGetResourceUri(connectorUri, resourceUri);
         }
         Model graphQueryResult = repositoryFacade.constructQuery(
                 "CONSTRUCT { ?res ?p ?o . ?o ?p2 ?o2 . ?o2 ?p3 ?o3 . ?o3 ?p4 ?o4 . ?o4 ?p5 ?o5 . ?o5 ?p6 ?o6 . ?o6 ?p7 ?o7 . ?s ?p ?res . } " +
-                "WHERE { " +
-                //We already ensured that this graph is active
-                "BIND(<" + connectorUri.toString() + "> AS ?g) . " +
-                "BIND(<" + resourceUri.toString() + "> AS ?res) . " +
-                "GRAPH ?g { { ?res ?p ?o . OPTIONAL { ?o ?p2 ?o2 . OPTIONAL { ?o2 ?p3 ?o3 . OPTIONAL { ?o3 ?p4 ?o4 . OPTIONAL { ?o4 ?p5 ?o5 . OPTIONAL { ?o5 ?p6 ?o6 . OPTIONAL { ?o6 ?p7 ?o7 . } } } } } } } " +
-                "UNION " +
-                "{ ?s ?p ?res . }" +
-                "} }");
+                        "WHERE { " +
+                        //We already ensured that this graph is active
+                        "BIND(<" + connectorUri.toString() + "> AS ?g) . " +
+                        "BIND(<" + resourceUri.toString() + "> AS ?res) . " +
+                        "GRAPH ?g { { ?res ?p ?o . OPTIONAL { ?o ?p2 ?o2 . OPTIONAL { ?o2 ?p3 ?o3 . OPTIONAL { ?o3 ?p4 ?o4 . OPTIONAL { ?o4 ?p5 ?o5 . OPTIONAL { ?o5 ?p6 ?o6 . OPTIONAL { ?o6 ?p7 ?o7 . } } } } } } } " +
+                        "UNION " +
+                        "{ ?s ?p ?res . }" +
+                        "} }");
         if(graphQueryResult.isEmpty())
         {
             throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The resource you are trying to update or remove was not found. Try sending a ResourceAvailableMessage instead."));

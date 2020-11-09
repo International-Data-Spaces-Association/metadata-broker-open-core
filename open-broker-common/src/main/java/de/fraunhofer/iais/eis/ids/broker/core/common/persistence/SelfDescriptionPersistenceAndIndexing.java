@@ -94,7 +94,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      * @param newURI new URI
      * @return updated string
      */
-    private String doReplace(String input, URI oldURI, URI newURI)
+    static private String doReplace(String input, URI oldURI, URI newURI)
     {
         //Make sure that we replace only "full URIs" and don't replace the URI if it is only part of a longer URI
         return input.replace("\"" + oldURI + "\"", "\"" + newURI + "\"");
@@ -103,6 +103,113 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     private URI rewriteConnectorUri(URI connectorUri)
     {
         return URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
+    }
+
+    static String rewriteResource(String currentString, Resource resource, URI catalogUri, boolean isOffer) throws URISyntaxException {
+        URI resourceUri;
+        if(isOffer)
+        {
+            resourceUri = new URI(catalogUri + "/offeredResource/" + resource.getId().hashCode());
+        }
+        else
+        {
+            resourceUri = new URI(catalogUri + "/requestedResource/" + resource.getId().hashCode());
+        }
+
+        if(resource.getContractOffer() != null && !resource.getContractOffer().isEmpty())
+        {
+            for(ContractOffer contractOffer : resource.getContractOffer())
+            {
+                URI contractOfferUri = new URI(resourceUri + "/contractOffer/" + contractOffer.getId().hashCode());
+                currentString = doReplace(currentString, contractOffer.getId(), contractOfferUri);
+                Map<Rule, URI> allRules = new HashMap<>();
+                if(contractOffer.getObligation() != null && !contractOffer.getObligation().isEmpty()) {
+                    for (Duty duty : contractOffer.getObligation()) {
+                        allRules.put(duty, new URI(contractOfferUri.toString() + "/duty/" + duty.getId().hashCode()));
+                    }
+                }
+                if(contractOffer.getPermission() != null && !contractOffer.getPermission().isEmpty()) {
+                    for (Permission permission : contractOffer.getPermission()) {
+                        allRules.put(permission, new URI(contractOfferUri.toString() + "/permission/" + permission.getId().hashCode()));
+                        if(permission.getPreDuty() != null && !permission.getPreDuty().isEmpty())
+                        {
+                            for(Duty duty : permission.getPreDuty())
+                            {
+                                allRules.put(duty, new URI(contractOfferUri.toString() + "/permission/" + permission.getId().hashCode() + "/preDuty/" + duty.getId().hashCode()));
+                            }
+                        }
+                        if(permission.getPostDuty() != null && !permission.getPostDuty().isEmpty())
+                        {
+                            for(Duty duty : permission.getPostDuty())
+                            {
+                                allRules.put(duty, new URI(contractOfferUri.toString() + "/permission/" + permission.getId().hashCode() + "/postDuty/" + duty.getId().hashCode()));
+                            }
+                        }
+                    }
+                }
+                if(contractOffer.getProhibition() != null && !contractOffer.getProhibition().isEmpty())
+                {
+                    for (Prohibition prohibition : contractOffer.getProhibition()) {
+                        allRules.put(prohibition, new URI(contractOfferUri.toString() + "/prohibition/" + prohibition.getId().hashCode()));
+                    }
+                }
+                if(!allRules.isEmpty()) {
+                    for (Map.Entry<Rule, URI> ruleEntry : allRules.entrySet()) {
+                        currentString = doReplace(currentString, ruleEntry.getKey().getId(), ruleEntry.getValue());
+                        if(ruleEntry.getKey().getConstraint() != null && !ruleEntry.getKey().getConstraint().isEmpty())
+                        {
+                            for(Constraint constraint : ruleEntry.getKey().getConstraint())
+                            {
+                                currentString = doReplace(currentString, constraint.getId(), new URI(ruleEntry.getValue() + "/constraint/" + constraint.getId().hashCode()));
+                            }
+                        }
+                    }
+                }
+
+                if(contractOffer.getContractDocument() != null)
+                {
+                    currentString = doReplace(currentString, contractOffer.getContractDocument().getId(), new URI(contractOfferUri + "/contractDocument/" + contractOffer.getContractDocument().getId().hashCode()));
+                }
+
+            }
+        }
+
+        currentString = doReplace(currentString, resource.getId(), resourceUri);
+
+        if(resource.getResourceEndpoint() != null && !resource.getResourceEndpoint().isEmpty())
+        {
+            for(ConnectorEndpoint connectorEndpoint : resource.getResourceEndpoint())
+            {
+                URI endpointUri = new URI(resourceUri + "/resourceEndpoint/" + connectorEndpoint.getId().hashCode());
+                if(connectorEndpoint.getEndpointArtifact() != null)
+                {
+                    currentString = doReplace(currentString, connectorEndpoint.getEndpointArtifact().getId(), new URI(connectorEndpoint.getEndpointArtifact().getId() + "/endpointArtifact/" + connectorEndpoint.getEndpointArtifact().getId().hashCode()));
+                }
+
+                currentString = doReplace(currentString, connectorEndpoint.getId(), endpointUri);
+            }
+
+        }
+
+        //urisToReplace.add(resource.getId());
+        if(resource.getRepresentation() != null)
+        {
+            for(Representation representation : resource.getRepresentation())
+            {
+                URI representationURI = new URI(resourceUri + "/representation/" + representation.getId().hashCode());
+                currentString = doReplace(currentString, representation.getId(), representationURI);
+                if(representation.getInstance() != null)
+                {
+                    for(RepresentationInstance artifact : representation.getInstance())
+                    {
+                        currentString = doReplace(currentString, artifact.getId(), new URI(representationURI + "/instance/" + artifact.getId().hashCode()));
+                        //urisToReplace.add(artifact.getId());
+                    }
+                }
+            }
+        }
+
+        return currentString;
     }
 
     /**
@@ -150,108 +257,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
                 }
                 for(Map.Entry<Resource, Boolean> currentResource : resourcesToHandle.entrySet())
                 {
-                    URI resourceUri;
-                    if(currentResource.getValue())
-                    {
-                        resourceUri = new URI(catalogUri + "/offeredResource/" + currentResource.getKey().getId().hashCode());
-                    }
-                    else
-                    {
-                        resourceUri = new URI(catalogUri + "/requestedResource/" + currentResource.getKey().getId().hashCode());
-                    }
-
-                    if(currentResource.getKey().getContractOffer() != null && !currentResource.getKey().getContractOffer().isEmpty())
-                    {
-                        for(ContractOffer contractOffer : currentResource.getKey().getContractOffer())
-                        {
-                            URI contractOfferUri = new URI(resourceUri + "/contractOffer/" + contractOffer.getId().hashCode());
-                            currentString = doReplace(currentString, contractOffer.getId(), contractOfferUri);
-                            Map<Rule, URI> allRules = new HashMap<>();
-                            if(contractOffer.getObligation() != null && !contractOffer.getObligation().isEmpty()) {
-                                for (Duty duty : contractOffer.getObligation()) {
-                                    allRules.put(duty, new URI(contractOfferUri.toString() + "/duty/" + duty.getId().hashCode()));
-                                }
-                            }
-                            if(contractOffer.getPermission() != null && !contractOffer.getPermission().isEmpty()) {
-                                for (Permission permission : contractOffer.getPermission()) {
-                                    allRules.put(permission, new URI(contractOfferUri.toString() + "/permission/" + permission.getId().hashCode()));
-                                    if(permission.getPreDuty() != null && !permission.getPreDuty().isEmpty())
-                                    {
-                                        for(Duty duty : permission.getPreDuty())
-                                        {
-                                            allRules.put(duty, new URI(contractOfferUri.toString() + "/permission/" + permission.getId().hashCode() + "/preDuty/" + duty.getId().hashCode()));
-                                        }
-                                    }
-                                    if(permission.getPostDuty() != null && !permission.getPostDuty().isEmpty())
-                                    {
-                                        for(Duty duty : permission.getPostDuty())
-                                        {
-                                            allRules.put(duty, new URI(contractOfferUri.toString() + "/permission/" + permission.getId().hashCode() + "/postDuty/" + duty.getId().hashCode()));
-                                        }
-                                    }
-                                }
-                            }
-                            if(contractOffer.getProhibition() != null && !contractOffer.getProhibition().isEmpty())
-                            {
-                                for (Prohibition prohibition : contractOffer.getProhibition()) {
-                                    allRules.put(prohibition, new URI(contractOfferUri.toString() + "/prohibition/" + prohibition.getId().hashCode()));
-                                }
-                            }
-                            if(!allRules.isEmpty()) {
-                                for (Map.Entry<Rule, URI> ruleEntry : allRules.entrySet()) {
-                                    currentString = doReplace(currentString, ruleEntry.getKey().getId(), ruleEntry.getValue());
-                                    if(ruleEntry.getKey().getConstraint() != null && !ruleEntry.getKey().getConstraint().isEmpty())
-                                    {
-                                        for(Constraint constraint : ruleEntry.getKey().getConstraint())
-                                        {
-                                            currentString = doReplace(currentString, constraint.getId(), new URI(ruleEntry.getValue() + "/constraint/" + constraint.getId().hashCode()));
-                                        }
-                                    }
-                                }
-                            }
-
-                            if(contractOffer.getContractDocument() != null)
-                            {
-                                currentString = doReplace(currentString, contractOffer.getContractDocument().getId(), new URI(contractOfferUri + "/contractDocument/" + contractOffer.getContractDocument().getId().hashCode()));
-                            }
-
-                        }
-                    }
-
-                    currentString = doReplace(currentString, currentResource.getKey().getId(), resourceUri);
-
-                    if(currentResource.getKey().getResourceEndpoint() != null && !currentResource.getKey().getResourceEndpoint().isEmpty())
-                    {
-                        for(ConnectorEndpoint connectorEndpoint : currentResource.getKey().getResourceEndpoint())
-                        {
-                            URI endpointUri = new URI(resourceUri + "/resourceEndpoint/" + connectorEndpoint.getId().hashCode());
-                            if(connectorEndpoint.getEndpointArtifact() != null)
-                            {
-                                currentString = doReplace(currentString, connectorEndpoint.getEndpointArtifact().getId(), new URI(connectorEndpoint.getEndpointArtifact().getId() + "/endpointArtifact/" + connectorEndpoint.getEndpointArtifact().getId().hashCode()));
-                            }
-
-                            currentString = doReplace(currentString, connectorEndpoint.getId(), endpointUri);
-                        }
-
-                    }
-
-                    //urisToReplace.add(resource.getId());
-                    if(currentResource.getKey().getRepresentation() != null)
-                    {
-                        for(Representation representation : currentResource.getKey().getRepresentation())
-                        {
-                            URI representationURI = new URI(resourceUri + "/representation/" + representation.getId().hashCode());
-                            currentString = doReplace(currentString, representation.getId(), representationURI);
-                            if(representation.getInstance() != null)
-                            {
-                                for(RepresentationInstance artifact : representation.getInstance())
-                                {
-                                    currentString = doReplace(currentString, artifact.getId(), new URI(representationURI + "/instance/" + artifact.getId().hashCode()));
-                                    //urisToReplace.add(artifact.getId());
-                                }
-                            }
-                        }
-                    }
+                    currentString = rewriteResource(currentString, currentResource.getKey(), catalogUri, currentResource.getValue());
                 }
             }
         }

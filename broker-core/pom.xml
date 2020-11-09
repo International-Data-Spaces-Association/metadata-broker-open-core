@@ -47,6 +47,19 @@
             <artifactId>open-broker-common</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- JSON. TODO, do testing in a better way, not requiring this dependency  -->
+        <dependency>
+            <groupId>com.vaadin.external.google</groupId>
+            <artifactId>android-json</artifactId>
+            <version>0.0.20131108.vaadin1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

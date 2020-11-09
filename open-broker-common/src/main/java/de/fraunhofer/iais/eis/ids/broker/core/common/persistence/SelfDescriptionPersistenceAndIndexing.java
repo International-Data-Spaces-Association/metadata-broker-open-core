@@ -100,6 +100,11 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         return input.replace("\"" + oldURI + "\"", "\"" + newURI + "\"");
     }
 
+    private URI rewriteConnectorUri(URI connectorUri)
+    {
+        return URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
+    }
+
     /**
      * This function replaces URIs of an infrastructure component (component + catalog + resources + representations + artifacts)
      * The new URIs match a scheme suitable for a RESTful API
@@ -108,12 +113,15 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      * @throws IOException if parsing of the updated component fails
      * @throws URISyntaxException if an invalid URI is created during this process
      */
-    private InfrastructureComponent replaceIds(InfrastructureComponent infrastructureComponent) throws IOException, URISyntaxException {
+    private InfrastructureComponent replaceIds(InfrastructureComponent infrastructureComponent) throws IOException, URISyntaxException, RejectMessageException {
         //Collect all relevant IDs of IDS items (connector, catalogs, resources, representations, artifacts) replace them later
-        //TODO: Replace even more URIs? Endpoints of Connectors/Resources? Contracts? Many more?
 
         //TODO: Ideally, use relative URIs: "./ + hashCode" instead, but Serializer (Jena) fails on that. We don't really want to store the full URI here, as that makes the broker un-portable
-        URI infrastructureComponentUri = URI.create(componentCatalogUri.toString() + infrastructureComponent.getId().hashCode());
+        if(infrastructureComponent.getId() == null)
+        {
+            throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE, new NullPointerException("Connector did not provide a URI"));
+        }
+        URI infrastructureComponentUri = rewriteConnectorUri(infrastructureComponent.getId());
         String currentString = infrastructureComponent.toRdf();
         currentString = doReplace(currentString, infrastructureComponent.getId(), infrastructureComponentUri);
         //urisToReplace.add(infrastructureComponent.getId());
@@ -261,8 +269,9 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      */
     @Override
     public void updated(InfrastructureComponent infrastructureComponent) throws IOException, RejectMessageException {
-        boolean wasActive = repositoryFacade.graphIsActive(infrastructureComponent.getId().toString());
-        boolean existed = repositoryFacade.graphExists(infrastructureComponent.getId().toString());
+        URI connectorUri = rewriteConnectorUri(infrastructureComponent.getId());
+        boolean wasActive = repositoryFacade.graphIsActive(connectorUri.toString());
+        boolean existed = repositoryFacade.graphExists(connectorUri.toString());
 
         //Replace URIs in this infrastructureComponent with URIs matching our scheme. This is required for a RESTful API
         //TODO: Do the same for resources (or at ParIS, for participants)
@@ -336,9 +345,10 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     @Override
     public void unavailable(URI issuerConnector) throws IOException, RejectMessageException {
         //Turn graph into a passive one
-        if(repositoryFacade.graphIsActive(issuerConnector.toString()))
+        URI rewrittenConnectorUri = rewriteConnectorUri(issuerConnector);
+        if(repositoryFacade.graphIsActive(rewrittenConnectorUri.toString()))
         {
-            repositoryFacade.changePassivationOfGraph(issuerConnector.toString(), false);
+            repositoryFacade.changePassivationOfGraph(rewrittenConnectorUri.toString(), false);
         }
         else
         {
@@ -346,24 +356,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         }
 
         //Remove the passivated graph from indexing. Upon re-activating, this will be undone
-        indexing.delete(issuerConnector);
-    }
-
-    /**
-     * Internal function which should only be called from the unavailable function. It marks a connector as deleted.
-     * Note that the connector is NEVER physically deleted from the triple store
-     * @param issuerConnector URI of the connector to be removed from triple store
-     * @throws RejectMessageException thrown, if the changes are illegal, or if an internal error has occurred
-     */
-    private void removeFromTriplestore(URI issuerConnector) throws RejectMessageException {
-        if(repositoryFacade.graphExists(issuerConnector.toString()))
-        {
-            repositoryFacade.changePassivationOfGraph(issuerConnector.toString(), false);
-        }
-        else
-        {
-            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector you are trying to delete was not found"));
-        }
+        indexing.delete(rewrittenConnectorUri);
     }
 
 

@@ -1,0 +1,17 @@
+version: '2'
+services:
+
+  broker-fuseki:
+    image: ids.iais.fraunhofer.de:5000/ids/eis-broker-fuseki
+    environment:
+    - ADMIN_PASSWORD=test
+    ports:
+    - "3030:3030"
+    volumes:
+      - broker-fuseki:/fuseki
+    expose:
+    - "3030"
+
+
+volumes:
+    broker-fuseki:

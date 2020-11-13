@@ -43,7 +43,7 @@ The steps for bringing up a Broker instance depend on the host where the Broker 
 
     Please also check, that the for Volumes in Reverseproxy contain your cert folder, and change it accordingly.
 
-3. __Run the services__: We provide a [docker-compose file for a localhost setup](docker/composefiles/localhost/docker-compose.yml). Download the file, change
+3. __Run the services__: We provide a [docker-compose file for a localhost setup](docker/composefiles/broker-localhost/docker-compose.yml). Download the file, change
     to the directory where it is located and run ```docker-compose up```.   
 
 ## API description

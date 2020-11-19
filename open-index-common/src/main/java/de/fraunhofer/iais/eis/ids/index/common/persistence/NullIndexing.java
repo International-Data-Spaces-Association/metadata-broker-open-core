@@ -43,7 +43,7 @@ public class NullIndexing implements Indexing {
     }
 
     @Override
-    public void recreateIndex() {
+    public void recreateIndex(String indexName) {
         logger.info("Clear index IGNORED.");
     }
 

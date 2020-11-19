@@ -59,8 +59,9 @@ public interface Indexing {
 
     /**
      * Function for recreating the entire index from the current state of the repository (triple store). This helps keeping database and index in sync
+     * @param indexName name of the index to be recreated
      * @throws IOException may be thrown if an exception occurs during the dropping or recreation of the index
      */
-    void recreateIndex() throws IOException;
+    void recreateIndex(String indexName) throws IOException;
 
 }

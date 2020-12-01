@@ -7,8 +7,6 @@ import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.RDFWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -19,7 +17,6 @@ import java.io.IOException;
 public class ConstructQueryResultHandler {
     public static String contextDocumentUrl;
     public static String catalogUri;
-    private final static Logger logger = LoggerFactory.getLogger(ConstructQueryResultHandler.class);
 
     /**
      * Takes the result of a Construct Query targeted to retrieve triples about a participant

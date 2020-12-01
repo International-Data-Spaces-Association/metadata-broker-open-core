@@ -17,6 +17,7 @@ import java.util.Collections;
 
 /**
  * Message handler class, forwarding the request to the DescriptionProvider and responding with a DescriptionResponseMessage
+ * @author maboeckmann
  */
 public class DescriptionRequestHandler implements MessageHandler<DescriptionRequestMAP, DescriptionResultMAP> {
 
@@ -46,19 +47,7 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
     @Override
     public DescriptionResultMAP handle(DescriptionRequestMAP messageAndPayload) throws RejectMessageException {
         String payload;
-        /*if(messageAndPayload.getMessage().getProperties() == null)
-        {
-            System.out.println("No properties in message");
-        }
-        else
-        {
-            System.out.println("Properties not null");
-            for(Map.Entry<String, Object> entry :  messageAndPayload.getMessage().getProperties().entrySet())
-            {
-                System.out.println("Key: " + entry.getKey());
-            }
-        }
-         */
+
         //TODO: No hardcoded URI should be used
         if(messageAndPayload.getMessage().getProperties() != null && messageAndPayload.getMessage().getProperties().containsKey("https://w3id.org/idsa/core/depth"))
         {
@@ -66,7 +55,7 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
             int depth = 0;
             try {
                 String propertyValue = messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/depth").toString();
-                if(propertyValue.contains("^^"))
+                if(propertyValue.contains("^^")) //expecting something like: 0^^xsd:integer
                 {
                     propertyValue = propertyValue.substring(0, propertyValue.indexOf("^^"));
                 }
@@ -88,6 +77,7 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
             payload = descriptionProvider.getElementAsJsonLd(messageAndPayload.getMessage().getRequestedElement());
         }
         try {
+            //Wrap the result in a DescriptionResult MessageAndPayload
             return new DescriptionResultMAP(new DescriptionResponseMessageBuilder()
                     ._correlationMessage_(messageAndPayload.getMessage().getId())
                     ._issued_(CalendarUtil.now())
@@ -96,10 +86,10 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
                     ._securityToken_(securityTokenProvider.getSecurityTokenAsDAT())
                     ._senderAgent_(responseSenderAgentUri)
                     .build(),
-                    payload
+                    payload //Payload is the JSON-LD representation of the requested element
             );
         }
-        catch (TokenRetrievalException e)
+        catch (TokenRetrievalException e) //occurs if we cannot fetch our own security token
         {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }

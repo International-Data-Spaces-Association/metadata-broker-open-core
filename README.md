@@ -15,9 +15,9 @@ Security is currently supported in terms of TLS via a reverse proxy.
 
 [broker-core](./broker-core): The main Maven Artifact to start with.
 
-[open-broker-commen](./open-broker-commen): Shared code which [broker-core](./broker-core) requires.
+[open-broker-common](./open-broker-common): Shared code which [broker-core](./broker-core) requires.
 
-[open-index-commen](./open-index-commen): Shared functionalities not only for [open-broker-commen](./open-broker-commen) but also for furhter IDS index services (for instance ParIS).
+[open-index-common](./open-index-common): Shared functionalities not only for [open-broker-common](./open-broker-common) but also for further IDS index services (for instance ParIS).
 
 [docker](./docker): Docker and DockerCompose files to deploy the IDS Metadata Broker. 
 
@@ -41,14 +41,14 @@ The steps for bringing up a Broker instance depend on the host where the Broker 
 
      `docker login app-store.ids.isst.fraunhofer.de:5000`
 
-    Please also check, that the for Volumes in Reverseproxy contain your cert folder, and change it accordingly.
+    Please also check, that the volume of the reverse proxy contains your cert folder, and change it accordingly.
 
 3. __Run the services__: We provide a [docker-compose file for a localhost setup](docker/composefiles/broker-localhost/docker-compose.yml). Download the file, change
     to the directory where it is located and run ```docker-compose up```.   
 
 ## API description
 
-see [Broker API in SwaggerHub](https://app.swaggerhub.com/apis/idsa/IDS-Broker/1.3.1#)
+see [Broker API in SwaggerHub](https://app.swaggerhub.com/apis/idsa/IDS-Broker/)
 
 ## Built With
 

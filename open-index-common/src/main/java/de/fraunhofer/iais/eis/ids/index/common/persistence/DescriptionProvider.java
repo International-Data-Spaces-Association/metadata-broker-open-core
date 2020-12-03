@@ -4,6 +4,8 @@ import de.fraunhofer.iais.eis.InfrastructureComponent;
 import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import org.apache.jena.rdf.model.Model;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
@@ -12,6 +14,7 @@ import java.net.URI;
  */
 public class DescriptionProvider {
 
+    final Logger logger = LoggerFactory.getLogger(DescriptionProvider.class);
     //For describing "foreign objects"
     RepositoryFacade repositoryFacade;
     //For describing itself
@@ -59,13 +62,16 @@ public class DescriptionProvider {
         //Check if a self description is requested
         if(requestedElement == null || requestedElement.equals(selfDescription.getId()))
         {
+            logger.info("Self-description has been requested");
             return selfDescription.toRdf();
         }
         //Check if the catalog is requested (exact match or match except for a missing trailing slash)
         if(requestedElement.equals(catalogUri) || (requestedElement.toString() + "/").equals(catalogUri.toString()))
         {
+            logger.info("Full catalog has been requested");
             return catalogProvider.generateCatalogFromTripleStore().toRdf();
         }
+        logger.info("Custom element has been requested: " + requestedElement);
 
         //Something else is requested. Let's see if we can find it inside the triple store
         StringBuilder queryString = new StringBuilder();

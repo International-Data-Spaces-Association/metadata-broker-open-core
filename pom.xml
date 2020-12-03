@@ -23,12 +23,6 @@
     </properties>
 
     <repositories>
-        <!-- TODO: Delete this repo from open-source version -->
-        <repository>
-            <id>eis-snapshot-repo</id>
-            <name>maven-public</name>
-            <url>http://maven.iais.fraunhofer.de/artifactory/eis-ids-snapshot</url>
-        </repository>
         <repository>
             <id>eis-public-repo</id>
             <name>maven-public</name>

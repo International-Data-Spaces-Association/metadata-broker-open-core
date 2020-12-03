@@ -66,6 +66,13 @@ public class IndexSelfDescription implements SelfDescriptionProvider {
 
         //Host host = new HostBuilder()._protocol_(Protocol.HTTP)._accessUrl_(componentUri).build();
 
+        //To avoid having double slashes at some places, make sure that we have no trailing slash before appending things like "/infrastructure"
+        URI componentUriWithoutTrailingSlash = componentUri;
+        if(componentUri.toString().endsWith("/"))
+        {
+            componentUriWithoutTrailingSlash = URI.create(componentUri.toString().substring(0, componentUri.toString().length() - 1));
+        }
+
         BrokerBuilder builder = new BrokerBuilder(componentId)
                 ._title_(asList(new TypedLiteral("IDS Metadata Broker", "en")))
                 ._description_(asList(new TypedLiteral("A Broker with a graph persistence layer@en")))
@@ -77,7 +84,7 @@ public class IndexSelfDescription implements SelfDescriptionProvider {
                 ._hasEndpoint_(asList(new ConnectorEndpointBuilder()
                         ._path_("/infrastructure")
                         ._endpointDocumentation_(Util.asList(URI.create("https://app.swaggerhub.com/apis/idsa/IDS-Broker/1.3.1#/Multipart%20Interactions/post_infrastructure")))
-                        ._accessURL_(URI.create(componentUri + "/infrastructure"))
+                        ._accessURL_(URI.create(componentUriWithoutTrailingSlash + "/infrastructure"))
                         ._endpointInformation_(asList(
                                 new TypedLiteral("This endpoint provides IDS Connector and IDS Resource registration and search capabilities at the IDS Metadata Broker.","en"),
                                 new TypedLiteral("Dieser Endpunkt ermöglicht die Registrierung von und das Suchen nach IDS Connectoren und IDS Ressourcen am IDS Metadata Broker.", "de")
@@ -91,26 +98,9 @@ public class IndexSelfDescription implements SelfDescriptionProvider {
                         ._endpointInformation_(Util.asList(
                                 new TypedLiteral("Endpoint providing a self-description of this connector", "en"),
                                 new TypedLiteral("Dieser Endpunkt liefert eine Selbstbeschreibung dieses IDS Connectors", "de")))
-                        ._accessURL_(URI.create(componentUri + "/"))
+                        ._accessURL_(URI.create(componentUriWithoutTrailingSlash + "/"))
                         .build())
                 ._securityProfile_(SecurityProfile.BASE_SECURITY_PROFILE);
-
-        //This is only inside the DAT now
-        /*if(sslCertificatePath != null && !sslCertificatePath.equals(""))
-        {
-            try {
-                FileInputStream is = new FileInputStream(sslCertificatePath);
-                CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-                X509Certificate cert = (X509Certificate)certificateFactory.generateCertificate(is);
-                builder._transportCertsSha256_(Util.asList(DigestUtils.sha256Hex(cert.getEncoded())));
-            }
-            catch (FileNotFoundException | CertificateException e)
-            {
-                logger.warn("Failed to read SSL certificate from " + sslCertificatePath + " - cannot add SHA256 fingerprint to self description", e);
-            }
-        }
-         */
-
         return builder.build();
     }
 

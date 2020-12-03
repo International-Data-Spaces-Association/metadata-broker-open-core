@@ -2,7 +2,6 @@ package de.fraunhofer.iais.eis.ids.index.common.persistence;
 
 import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.ResourceCatalog;
-import de.fraunhofer.iais.eis.ResourceCatalogBuilder;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
 import org.apache.jena.rdf.model.Model;
@@ -63,17 +62,6 @@ public class CatalogProvider {
         }
         catch (Exception e)
         {
-            //Check if exception occurred due to an empty catalog
-            if(e instanceof RejectMessageException)
-            {
-                if(((RejectMessageException) e).getRejectionReason().equals(RejectionReason.NOT_FOUND))
-                {
-                    logger.warn("Catalog was requested, but it appears to be empty.");
-                    //Return empty catalog
-                    return new ResourceCatalogBuilder().build();
-                }
-            }
-            //Some other error occurred. Print and return with error message
             logger.error("An error occurred while trying to retrieve own catalog", e);
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }

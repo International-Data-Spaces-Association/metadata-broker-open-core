@@ -50,20 +50,16 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
     public DefaultSuccessMAP handleValidated(ResourceMAP messageAndPayload) throws RejectMessageException {
         Message msg = messageAndPayload.getMessage();
         try {
-            /*if (msg instanceof ResourceAvailableMessage) {
-                if (((ResourceAvailableMessage) msg).getAffectedResource() != null && messageAndPayload.getPayload().isPresent()) {
-                    resourceStatusHandler.available(messageAndPayload.getPayload().get(), msg.getIssuerConnector());
-                } else {
-                    throw new RejectMessageException(RejectionReason.BAD_PARAMETERS, new NullPointerException("Affected Resource is null or payload is missing"));
-                }
-            } else */
             if (msg instanceof ResourceUpdateMessage) {
+                //ResourceUpdateMessages have the affected Resource in their payload
                 if (((ResourceUpdateMessage) msg).getAffectedResource() != null && messageAndPayload.getPayload().isPresent()) {
                     resourceStatusHandler.updated(messageAndPayload.getPayload().get(), msg.getIssuerConnector());
                 } else {
+                    //If no payload present, Resource cannot be updated
                     throw new RejectMessageException(RejectionReason.BAD_PARAMETERS, new NullPointerException("Affected Resource is null or payload is missing"));
                 }
             } else if (msg instanceof ResourceUnavailableMessage) {
+                //ResourceUnavailableMessages only contain a reference to the Resource which is now unavailable. Payload should be null
                 if (((ResourceUnavailableMessage) msg).getAffectedResource() != null) {
                     resourceStatusHandler.unavailable(((ResourceUnavailableMessage) msg).getAffectedResource(), msg.getIssuerConnector());
                 } else {
@@ -73,6 +69,7 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
 
 
         } catch (Exception e) {
+            //Exception occurred. If it is already a RejectMessageException, throw that. If not, create a RejectMessageException with other RejectionReason
             if (e instanceof RejectMessageException) {
                 throw (RejectMessageException) e;
             }
@@ -85,10 +82,12 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
         try {
+            //No Exception occurred. Send MessageProcessedNotificationMessage
             return new DefaultSuccessMAP(infrastructureComponent.getId(), infrastructureComponent.getOutboundModelVersion(), messageAndPayload.getMessage().getId(), securityTokenProvider.getSecurityTokenAsDAT(), responseSenderAgent);
         }
         catch (TokenRetrievalException e)
         {
+            //Could not retrieve own DAT. Outgoing message cannot be validated by other connector. Sending an error message
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
     }

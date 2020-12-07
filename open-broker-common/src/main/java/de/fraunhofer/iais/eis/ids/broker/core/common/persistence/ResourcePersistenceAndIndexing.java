@@ -205,7 +205,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      */
     private void addToTriplestore(Resource resource, URI connectorUri, URI catalogUri) throws IOException, RejectMessageException, URISyntaxException {
 
-        ResourceModelCreator.InnerModel result = resourceModelCreator.setConnectorUri(connectorUri).toModel(SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri, true));
+        ResourceModelCreator.InnerModel result = resourceModelCreator.setConnectorUri(connectorUri).toModel(SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri));
 
         //Add a statement that this Resource is part of some catalog
         //?catalog ids:offeredResource ?resource
@@ -232,6 +232,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             //At this stage, we need to rewrite the URI of the resource to our REST-like scheme
             resourceUri = tryGetResourceUri(connectorUri, resourceUri);
         }
+        //Grab "all" information about a Resource. This includes everything pointing at a resource as well as all child objects of a resource, up to a (rather arbitrary) depth of 7
         Model graphQueryResult = repositoryFacade.constructQuery(
                 "CONSTRUCT { ?res ?p ?o . ?o ?p2 ?o2 . ?o2 ?p3 ?o3 . ?o3 ?p4 ?o4 . ?o4 ?p5 ?o5 . ?o5 ?p6 ?o6 . ?o6 ?p7 ?o7 . ?s ?p ?res . } " +
                         "WHERE { " +
@@ -246,6 +247,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         {
             throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The resource you are trying to update or remove was not found. Try sending a ResourceAvailableMessage instead."));
         }
+        //Dump the result into a format over which we can iterate multiple times
         ArrayList<Statement> graphQueryResultAsList = new ArrayList<>();
         StmtIterator iterator = graphQueryResult.listStatements();
         while(iterator.hasNext())

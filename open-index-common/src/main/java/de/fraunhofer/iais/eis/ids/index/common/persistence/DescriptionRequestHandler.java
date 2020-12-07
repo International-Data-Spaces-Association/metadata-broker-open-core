@@ -10,6 +10,8 @@ import de.fraunhofer.iais.eis.ids.component.core.SecurityTokenProvider;
 import de.fraunhofer.iais.eis.ids.component.core.TokenRetrievalException;
 import de.fraunhofer.iais.eis.ids.component.core.map.DescriptionRequestMAP;
 import de.fraunhofer.iais.eis.ids.component.core.util.CalendarUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.Collection;
@@ -21,6 +23,7 @@ import java.util.Collections;
  */
 public class DescriptionRequestHandler implements MessageHandler<DescriptionRequestMAP, DescriptionResultMAP> {
 
+    private final Logger logger = LoggerFactory.getLogger(DescriptionRequestHandler.class);
     private final DescriptionProvider descriptionProvider;
     private final SecurityTokenProvider securityTokenProvider;
     private final URI responseSenderAgentUri;
@@ -48,32 +51,40 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
     public DescriptionResultMAP handle(DescriptionRequestMAP messageAndPayload) throws RejectMessageException {
         String payload;
 
-        //TODO: No hardcoded URI should be used
+        //Can we come up with a neater way than using a hardcoded URI? This is a custom header not defined elsewhere
+        //Depth determines whether we should only return information about this object, or also about child objects up to a certain hop limit
         if(messageAndPayload.getMessage().getProperties() != null && messageAndPayload.getMessage().getProperties().containsKey("https://w3id.org/idsa/core/depth"))
         {
-            //0 is the default value
+            //0 is the default value, meaning absolutely no child objects are expanded. Only their URI is shown, which one can dereference to obtain further information
             int depth = 0;
             try {
+                //Check out whether a custom depth is provided (in valid format)
                 String propertyValue = messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/depth").toString();
                 if(propertyValue.contains("^^")) //expecting something like: 0^^xsd:integer
                 {
+                    //Only take numeric part, plus quotation marks
                     propertyValue = propertyValue.substring(0, propertyValue.indexOf("^^"));
                 }
+                //Remove quotation marks
                 propertyValue = propertyValue.replace("\"", "");
+                //Rest should be a number. Try to parse. If it fails, we use default depth, see caught exception
                 depth = Integer.parseInt(propertyValue);
                 if(depth > maxDepth)
                 {
+                    //Only allow up to a certain depth
                     depth = maxDepth;
                 }
             }
             catch (NumberFormatException e)
             {
-                e.printStackTrace();
-                //come up with default value
+                //Invalid depth provided. For debugging, we are printing this, but otherwise ignoring the parameter, using the default value instead
+                logger.warn("Failed to parse depth header of incoming message to a number.", e);
             }
+            //Retrieve object with custom depth
             payload = descriptionProvider.getElementAsJsonLd(messageAndPayload.getMessage().getRequestedElement(), depth);
         }
         else {
+            //Retrieve object with default depth
             payload = descriptionProvider.getElementAsJsonLd(messageAndPayload.getMessage().getRequestedElement());
         }
         try {

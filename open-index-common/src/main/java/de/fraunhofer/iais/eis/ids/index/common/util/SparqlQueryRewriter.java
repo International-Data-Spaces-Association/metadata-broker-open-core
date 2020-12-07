@@ -80,7 +80,6 @@ public class SparqlQueryRewriter {
         }
         else
         {
-            //TODO: I think it is possible to leave out the WHERE keyword and not touch the semantics. Preventing it for now, but we should do this properly later
             throw new RejectMessageException(RejectionReason.BAD_PARAMETERS, new NullPointerException("Your query must contain a WHERE part."));
         }
 

@@ -7,6 +7,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
+/**
+ * Sample indexing class which ignores all indexing requests. Use this if no indexing is desired
+ */
 public class NullIndexing implements Indexing {
 
     final private Logger logger = LoggerFactory.getLogger(NullIndexing.class);

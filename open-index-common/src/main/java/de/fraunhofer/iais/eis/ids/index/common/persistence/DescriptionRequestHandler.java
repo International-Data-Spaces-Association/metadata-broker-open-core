@@ -9,6 +9,7 @@ import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.component.core.SecurityTokenProvider;
 import de.fraunhofer.iais.eis.ids.component.core.TokenRetrievalException;
 import de.fraunhofer.iais.eis.ids.component.core.map.DescriptionRequestMAP;
+import de.fraunhofer.iais.eis.ids.component.core.map.DescriptionResponseMAP;
 import de.fraunhofer.iais.eis.ids.component.core.util.CalendarUtil;
 
 import java.net.URI;
@@ -19,7 +20,7 @@ import java.util.Collections;
  * Message handler class, forwarding the request to the DescriptionProvider and responding with a DescriptionResponseMessage
  * @author maboeckmann
  */
-public class DescriptionRequestHandler implements MessageHandler<DescriptionRequestMAP, DescriptionResultMAP> {
+public class DescriptionRequestHandler implements MessageHandler<DescriptionRequestMAP, DescriptionResponseMAP> {
 
     private final DescriptionProvider descriptionProvider;
     private final SecurityTokenProvider securityTokenProvider;
@@ -45,7 +46,7 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
      * @throws RejectMessageException thrown if an error occurs during the retrieval process, e.g. if the requested object could not be found
      */
     @Override
-    public DescriptionResultMAP handle(DescriptionRequestMAP messageAndPayload) throws RejectMessageException {
+    public DescriptionResponseMAP handle(DescriptionRequestMAP messageAndPayload) throws RejectMessageException {
         String payload;
 
         //TODO: No hardcoded URI should be used
@@ -77,8 +78,8 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
             payload = descriptionProvider.getElementAsJsonLd(messageAndPayload.getMessage().getRequestedElement());
         }
         try {
-            //Wrap the result in a DescriptionResult MessageAndPayload
-            return new DescriptionResultMAP(new DescriptionResponseMessageBuilder()
+            //Wrap the result in a DescriptionResponse MessageAndPayload
+            return new DescriptionResponseMAP(new DescriptionResponseMessageBuilder()
                     ._correlationMessage_(messageAndPayload.getMessage().getId())
                     ._issued_(CalendarUtil.now())
                     ._issuerConnector_(descriptionProvider.selfDescription.getId())

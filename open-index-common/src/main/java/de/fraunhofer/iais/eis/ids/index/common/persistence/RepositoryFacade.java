@@ -24,6 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * This class provides an interface for easy access to the triple store
+ */
 public class RepositoryFacade {
     final private Logger logger = LoggerFactory.getLogger(RepositoryFacade.class);
     private URI adminGraphUri;
@@ -65,6 +68,10 @@ public class RepositoryFacade {
     }
 
 
+    /**
+     * Utility function for fetching a connection, either to the in-memory repository or the (possibly remote) triple store
+     * @return RDFConnection object, providing access to the repository
+     */
     public RDFConnection getNewConnection()
     {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
@@ -88,6 +95,12 @@ public class RepositoryFacade {
     }
 
 
+    /**
+     * Function for adding a collection of statements to a named graph
+     * @param statements statements to be added
+     * @param namedGraphUri named graph URI to which the statements should be added. Typically, this is the URI of the connector in question
+     * @throws RejectMessageException if the named graph doesn't exist
+     */
     public void addStatements(Model statements, String namedGraphUri) throws RejectMessageException {
         RDFConnection connection = getNewConnection();
         connection.load(namedGraphUri, statements); //load = add/append, put = set
@@ -143,6 +156,11 @@ public class RepositoryFacade {
         connection.close();
     }
 
+    /**
+     * Function to remove a given set of statements from a given named graph
+     * @param statementsToRemove List of statements to be removed
+     * @param namedGraphUri Named graph from which the statements should be removed
+     */
     public void removeStatements(List<Statement> statementsToRemove, String namedGraphUri)
     {
         if(statementsToRemove.size() == 0)
@@ -175,6 +193,11 @@ public class RepositoryFacade {
         connection.close();
     }
 
+    /**
+     * Utility function to evaluate an ASK SPARQL query
+     * @param query ASK query as String
+     * @return Evaluation result (boolean)
+     */
     public boolean booleanQuery(String query)
     {
         RDFConnection connection = getNewConnection();
@@ -183,6 +206,11 @@ public class RepositoryFacade {
         return result;
     }
 
+    /**
+     * Utility function to evaluate a CONSTRUCT SPARQL query
+     * @param query CONSTRUCT query as String
+     * @return Evaluation result (graph)
+     */
     public Model constructQuery(String query)
     {
         RDFConnection connection = getNewConnection();
@@ -191,6 +219,11 @@ public class RepositoryFacade {
         return m;
     }
 
+    /**
+     * Utility function to evaluate a SELECT SPARQL query
+     * @param query SELECT query as String
+     * @return Evaluation result (List of bindings, tabular form)
+     */
     public ArrayList<QuerySolution> selectQuery(String query)
     {
         RDFConnection connection = getNewConnection();
@@ -205,6 +238,11 @@ public class RepositoryFacade {
         return result;
     }
 
+    /**
+     * Utility function to evaluate a SELECT SPARQL query
+     * @param query SELECT query as String
+     * @param outputStream Evaluation result is streamed into this output stream
+     */
     public void selectQuery(String query, OutputStream outputStream)
     {
         RDFConnection connection = getNewConnection();
@@ -214,6 +252,11 @@ public class RepositoryFacade {
         queryExecution.close();
     }
 
+    /**
+     * Utility function to evaluate a DESCRIBE SPARQL query
+     * @param query SELECT query as String
+     * @return Evaluation result (graph)
+     */
     public Model describeQuery(String query)
     {
         RDFConnection connection = getNewConnection();
@@ -221,17 +264,6 @@ public class RepositoryFacade {
         connection.close();
         return m;
     }
-
-
-    //For debugging purposes
-    /*public void printAdminGraphContent()
-    {
-        String query = "SELECT ?s ?p ?o WHERE { BIND(<" + adminGraphUri.toString() + "> AS ?g) GRAPH ?g { ?s ?p ?o . } }";
-        selectQuery(query, System.out);
-    }
-     */
-
-
 
     /**
      * This function returns all statements from all active graphs. Note that passive or deleted graphs are not included in the result
@@ -372,6 +404,10 @@ public class RepositoryFacade {
         return booleanQuery("ASK FROM NAMED <" + adminGraphUri.toString() + "> WHERE { GRAPH ?g { <" + graphUrl + "> <" + graphIsActiveUrl + "> true . } } ");
     }
 
+    /**
+     * Internal function to remove all statements about a named graph from the admin graph. This is required when a graph changes states
+     * @param graphUrl Graph URL which should be removed from the admin graph
+     */
     private void removeGraphFromAdminGraph(String graphUrl)
     {
         ArrayList<QuerySolution> selectSolution = selectQuery("SELECT ?s ?p ?o FROM NAMED <" + adminGraphUri.toString() + "> WHERE { BIND(<" + graphUrl + "> AS ?s) GRAPH <" + adminGraphUri.toString() + "> { ?s ?p ?o } }");
@@ -413,14 +449,6 @@ public class RepositoryFacade {
     public boolean graphExists(String graphUrl)
     {
         logger.debug("Asking whether graph " + graphUrl + " exists.");
-        //Graph exists if we find such a named graph, and it is not marked as deleted
-
-        //Was the graph deleted? We don't delete graphs anymore...
-        //if(getRepositoryConnection().prepareBooleanQuery("ASK FROM NAMED <" + adminGraphUri.toString() + "> WHERE { GRAPH ?g { <" + graphUrl + "> <" + graphIsDeletedUrl + "> true . } } ").evaluate())
-        //{
-        //Graph was deleted, so it does not exist anymore
-        //    return false;
-        //}
 
         //Can we find the graph in the triplestore? If yes, then it exists and was not deleted
         return booleanQuery("ASK FROM NAMED <" + graphUrl + "> WHERE { BIND(<" + graphUrl + "> AS ?g ) . GRAPH ?g { ?s ?p ?o . } } ");

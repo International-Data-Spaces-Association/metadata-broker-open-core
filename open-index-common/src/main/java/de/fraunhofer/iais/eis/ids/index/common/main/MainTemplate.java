@@ -7,7 +7,6 @@ import de.fraunhofer.iais.eis.ids.component.ecosystemintegration.daps.tokenrenew
 import de.fraunhofer.iais.eis.ids.component.interaction.multipart.MultipartComponentInteractor;
 import de.fraunhofer.iais.eis.ids.component.protocol.http.server.ComponentInteractorProvider;
 import de.fraunhofer.iais.eis.ids.index.common.impl.IndexSelfDescription;
-import org.apache.http.HttpHost;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.solr.SolrAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
@@ -85,6 +84,10 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
     public abstract void shutDown() throws IOException;
 
 
+    /**
+     * Utility function for retrieving the own component interactor object
+     * @return own interactor as MultipartComponentInteractor
+     */
     @Override
     public MultipartComponentInteractor getComponentInteractor() {
         return multipartComponentInteractor;

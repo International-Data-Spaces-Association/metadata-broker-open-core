@@ -59,16 +59,6 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
     public DefaultSuccessMAP handleValidated(InfrastructureComponentMAP messageAndPayload) throws RejectMessageException {
         Message msg = messageAndPayload.getMessage();
         try {
-            /*if (msg instanceof ConnectorAvailableMessage) {
-                if(messageAndPayload.getPayload().isPresent()) {
-                    infrastructureComponentStatusHandler.available(messageAndPayload.getPayload().get());
-                }
-                else
-                {
-                    throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE, new NullPointerException("Missing Payload in ConnectorAvailableMessage"));
-                }
-            }
-            else */
             if (msg instanceof ConnectorUpdateMessage) {
                 if(messageAndPayload.getPayload().isPresent()) {
                     infrastructureComponentStatusHandler.updated(messageAndPayload.getPayload().get());
@@ -86,6 +76,7 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
         catch (Exception e) {
             if(e instanceof RejectMessageException)
             {
+                //If it already is a RejectMessageException, throw it as-is
                 throw (RejectMessageException) e;
             }
             //For some reason, ConnectExceptions sometimes do not provide an exception message.
@@ -101,16 +92,19 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
                     e = new Exception(e.getClass().getName() + " with empty message.");
                 }
             }
+            //Some unknown error has occurred, returning an internal error
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
 
         try {
+            //Let the connector know that the update was successful
             return new DefaultSuccessMAP(infrastructureComponent.getId(),
                     infrastructureComponent.getOutboundModelVersion(),
                     messageAndPayload.getMessage().getId(),
                     securityTokenProvider.getSecurityTokenAsDAT(),
                     responseSenderUri);
         }
+        //Thrown in case the broker is unable to obtain its own security token from the DAPS
         catch (TokenRetrievalException e)
         {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);

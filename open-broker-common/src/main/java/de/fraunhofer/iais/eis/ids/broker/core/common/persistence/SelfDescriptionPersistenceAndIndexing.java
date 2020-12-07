@@ -100,49 +100,59 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         return input.replace("\"" + oldURI + "\"", "\"" + newURI + "\"");
     }
 
+    /**
+     * Minimal utility function to turn a connector into a URI matching the REST scheme
+     * @param connectorUri Original connector URI
+     * @return new connector URI
+     */
     private URI rewriteConnectorUri(URI connectorUri)
     {
         return URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
     }
 
-    static String rewriteResource(String currentString, Resource resource, URI catalogUri, boolean isOffer) throws URISyntaxException {
-        URI resourceUri;
-        if(isOffer)
-        {
-            resourceUri = new URI(catalogUri + "/offeredResource/" + resource.getId().hashCode());
-        }
-        else
-        {
-            resourceUri = new URI(catalogUri + "/requestedResource/" + resource.getId().hashCode());
-        }
+    /**
+     * Main rewrite function, rewriting all URIs contained in a Resource object to match the REST scheme of this broker
+     * @param currentString Resource as String (possibly already partly translated)
+     * @param resource Resource as Object
+     * @param catalogUri URI of the catalog containing the Resource
+     * @return Resource in String representation with rewritten URIs
+     * @throws URISyntaxException, if malformed URIs are encountered
+     */
+    static String rewriteResource(String currentString, Resource resource, URI catalogUri) throws URISyntaxException {
+        URI resourceUri = new URI(catalogUri + "/" + resource.getId().hashCode());
 
+        //First big block is about contracts attached to a resource
         if(resource.getContractOffer() != null && !resource.getContractOffer().isEmpty())
         {
             for(ContractOffer contractOffer : resource.getContractOffer())
             {
-                URI contractOfferUri = new URI(resourceUri + "/contractOffer/" + contractOffer.getId().hashCode());
+                //Replace original URI of contract offer with a new one, which is in "our domain"
+                //This allows us to provide further details on this object if requested
+                URI contractOfferUri = new URI(resourceUri + "/" + contractOffer.getId().hashCode());
                 currentString = doReplace(currentString, contractOffer.getId(), contractOfferUri);
+
+                //There can be a number of different Rules: Obligations/Duties, Prohibitions and Permissions
                 Map<Rule, URI> allRules = new HashMap<>();
                 if(contractOffer.getObligation() != null && !contractOffer.getObligation().isEmpty()) {
                     for (Duty duty : contractOffer.getObligation()) {
-                        allRules.put(duty, new URI(contractOfferUri.toString() + "/duty/" + duty.getId().hashCode()));
+                        allRules.put(duty, new URI(contractOfferUri.toString() + "/" + duty.getId().hashCode()));
                     }
                 }
                 if(contractOffer.getPermission() != null && !contractOffer.getPermission().isEmpty()) {
                     for (Permission permission : contractOffer.getPermission()) {
-                        allRules.put(permission, new URI(contractOfferUri.toString() + "/permission/" + permission.getId().hashCode()));
+                        allRules.put(permission, new URI(contractOfferUri.toString() + "/" + permission.getId().hashCode()));
                         if(permission.getPreDuty() != null && !permission.getPreDuty().isEmpty())
                         {
                             for(Duty duty : permission.getPreDuty())
                             {
-                                allRules.put(duty, new URI(contractOfferUri.toString() + "/permission/" + permission.getId().hashCode() + "/preDuty/" + duty.getId().hashCode()));
+                                allRules.put(duty, new URI(contractOfferUri.toString() + "/" + permission.getId().hashCode() + "/" + duty.getId().hashCode()));
                             }
                         }
                         if(permission.getPostDuty() != null && !permission.getPostDuty().isEmpty())
                         {
                             for(Duty duty : permission.getPostDuty())
                             {
-                                allRules.put(duty, new URI(contractOfferUri.toString() + "/permission/" + permission.getId().hashCode() + "/postDuty/" + duty.getId().hashCode()));
+                                allRules.put(duty, new URI(contractOfferUri.toString() + "/" + permission.getId().hashCode() + "/" + duty.getId().hashCode()));
                             }
                         }
                     }
@@ -150,7 +160,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
                 if(contractOffer.getProhibition() != null && !contractOffer.getProhibition().isEmpty())
                 {
                     for (Prohibition prohibition : contractOffer.getProhibition()) {
-                        allRules.put(prohibition, new URI(contractOfferUri.toString() + "/prohibition/" + prohibition.getId().hashCode()));
+                        allRules.put(prohibition, new URI(contractOfferUri.toString() + "/" + prohibition.getId().hashCode()));
                     }
                 }
                 if(!allRules.isEmpty()) {
@@ -160,7 +170,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
                         {
                             for(Constraint constraint : ruleEntry.getKey().getConstraint())
                             {
-                                currentString = doReplace(currentString, constraint.getId(), new URI(ruleEntry.getValue() + "/constraint/" + constraint.getId().hashCode()));
+                                currentString = doReplace(currentString, constraint.getId(), new URI(ruleEntry.getValue() + "/" + constraint.getId().hashCode()));
                             }
                         }
                     }
@@ -168,22 +178,24 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
 
                 if(contractOffer.getContractDocument() != null)
                 {
-                    currentString = doReplace(currentString, contractOffer.getContractDocument().getId(), new URI(contractOfferUri + "/contractDocument/" + contractOffer.getContractDocument().getId().hashCode()));
+                    currentString = doReplace(currentString, contractOffer.getContractDocument().getId(), new URI(contractOfferUri + "/" + contractOffer.getContractDocument().getId().hashCode()));
                 }
 
             }
         }
 
+        //Contract has been handled. Next, rewrite the URI of the Resource itself
         currentString = doReplace(currentString, resource.getId(), resourceUri);
 
+        //Iterate over endpoints. For each present, replace URI
         if(resource.getResourceEndpoint() != null && !resource.getResourceEndpoint().isEmpty())
         {
             for(ConnectorEndpoint connectorEndpoint : resource.getResourceEndpoint())
             {
-                URI endpointUri = new URI(resourceUri + "/resourceEndpoint/" + connectorEndpoint.getId().hashCode());
+                URI endpointUri = new URI(resourceUri + "/" + connectorEndpoint.getId().hashCode());
                 if(connectorEndpoint.getEndpointArtifact() != null)
                 {
-                    currentString = doReplace(currentString, connectorEndpoint.getEndpointArtifact().getId(), new URI(connectorEndpoint.getEndpointArtifact().getId() + "/endpointArtifact/" + connectorEndpoint.getEndpointArtifact().getId().hashCode()));
+                    currentString = doReplace(currentString, connectorEndpoint.getEndpointArtifact().getId(), new URI(connectorEndpoint.getEndpointArtifact().getId() + "/" + connectorEndpoint.getEndpointArtifact().getId().hashCode()));
                 }
 
                 currentString = doReplace(currentString, connectorEndpoint.getId(), endpointUri);
@@ -191,19 +203,18 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
 
         }
 
-        //urisToReplace.add(resource.getId());
+        //Iterate over Representations. If Representation present, adapt string of Representation and, if present, Artifact
         if(resource.getRepresentation() != null)
         {
             for(Representation representation : resource.getRepresentation())
             {
-                URI representationURI = new URI(resourceUri + "/representation/" + representation.getId().hashCode());
+                URI representationURI = new URI(resourceUri + "/" + representation.getId().hashCode());
                 currentString = doReplace(currentString, representation.getId(), representationURI);
                 if(representation.getInstance() != null)
                 {
                     for(RepresentationInstance artifact : representation.getInstance())
                     {
-                        currentString = doReplace(currentString, artifact.getId(), new URI(representationURI + "/instance/" + artifact.getId().hashCode()));
-                        //urisToReplace.add(artifact.getId());
+                        currentString = doReplace(currentString, artifact.getId(), new URI(representationURI + "/" + artifact.getId().hashCode()));
                     }
                 }
             }
@@ -228,41 +239,34 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         {
             throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE, new NullPointerException("Connector did not provide a URI"));
         }
+
+        //Rewrite URI of the connector
         URI infrastructureComponentUri = rewriteConnectorUri(infrastructureComponent.getId());
         String currentString = infrastructureComponent.toRdf();
         currentString = doReplace(currentString, infrastructureComponent.getId(), infrastructureComponentUri);
-        //urisToReplace.add(infrastructureComponent.getId());
-        //Replace infrastructureComponent ID with ./someString
 
+        //If connector is holding catalogs, rewrite them and their contents
         if(((Connector)infrastructureComponent).getResourceCatalog() != null) {
             for (ResourceCatalog resourceCatalog : ((Connector) infrastructureComponent).getResourceCatalog()) {
-                URI catalogUri = new URI(infrastructureComponentUri + "/catalog/" + resourceCatalog.getId().hashCode());
+                URI catalogUri = new URI(infrastructureComponentUri + "/" + resourceCatalog.getId().hashCode());
                 currentString = doReplace(currentString, resourceCatalog.getId(), catalogUri);
 
-                //urisToReplace.add(resourceCatalog.getId());
-                Map<Resource, Boolean> resourcesToHandle = new HashMap<>();
+                Set<Resource> resourcesToHandle = new HashSet<>();
                 if(resourceCatalog.getOfferedResource() != null)
                 {
-                    for(Resource r : resourceCatalog.getOfferedResource())
-                    {
-                        resourcesToHandle.put(r, true);
-                    }
+                    resourcesToHandle.addAll(resourceCatalog.getOfferedResource());
                 }
                 if(resourceCatalog.getRequestedResource() != null)
                 {
-                    for(Resource r : resourceCatalog.getRequestedResource())
-                    {
-                        resourcesToHandle.put(r, false);
-                    }
+                    resourcesToHandle.addAll(resourceCatalog.getRequestedResource());
                 }
-                for(Map.Entry<Resource, Boolean> currentResource : resourcesToHandle.entrySet())
+                for(Resource currentResource : resourcesToHandle)
                 {
-                    currentString = rewriteResource(currentString, currentResource.getKey(), catalogUri, currentResource.getValue());
+                    currentString = rewriteResource(currentString, currentResource, catalogUri);
                 }
             }
         }
         //TODO: Store "old" URIs in properties map
-        //System.out.println(currentString);
         return new Serializer().deserialize(currentString, InfrastructureComponent.class);
     }
 

@@ -56,6 +56,11 @@ public class ConstructQueryResultHandler {
         }
     }
 
+    /**
+     * Utility function for turning an Apache Jena Model into a JSON-LD String
+     * @param model Input model
+     * @return Model as JSON-LD String
+     */
     public static String graphToString(Model model)
     {
         RDFWriter writer = RDFWriter.create().format(org.apache.jena.riot.RDFFormat.JSONLD).source(model).build();

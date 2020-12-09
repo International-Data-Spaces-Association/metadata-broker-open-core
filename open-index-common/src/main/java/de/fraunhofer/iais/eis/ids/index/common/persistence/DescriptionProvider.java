@@ -47,7 +47,7 @@ public class DescriptionProvider {
      * @throws RejectMessageException thrown if the requested object is not known or could not be retrieved
      */
     public String getElementAsJsonLd(URI requestedElement) throws RejectMessageException {
-        return getElementAsJsonLd(requestedElement, 1);
+        return getElementAsJsonLd(requestedElement, 0);
     }
 
     /**
@@ -65,27 +65,48 @@ public class DescriptionProvider {
             logger.info("Self-description has been requested");
             return selfDescription.toRdf();
         }
-        //Check if the catalog is requested (exact match or match except for a missing trailing slash)
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("PREFIX ids: <https://w3id.org/idsa/core/> \n");
+
+        //Check if we are at the root. This top path, which is the catalog URI to the outside, is not persisted as such in the triple store, but generated upon request
+        //If the root URI has been requested, we need to create specific SPARQL CONSTRUCT queries to serve a connector catalog
+        boolean atRoot = false;
+
         if(requestedElement.equals(catalogUri) || (requestedElement.toString() + "/").equals(catalogUri.toString()))
         {
-            logger.info("Full catalog has been requested");
-            return catalogProvider.generateCatalogFromTripleStore().toRdf();
+            logger.info("Catalog has been requested (with depth: " + depth + "): " + requestedElement);
+            atRoot = true;
+            queryString.append("CONSTRUCT { <").append(catalogUri).append("> a ids:ConnectorCatalog ; ids:listedConnector ?s0 . ?s0 ?p0 ?o0 .");
         }
-        logger.info("Custom element has been requested (with depth  " + depth + "): " + requestedElement);
-
-        //Something else is requested. Let's see if we can find it inside the triple store
-        StringBuilder queryString = new StringBuilder();
-        queryString.append("CONSTRUCT { ?s0 ?p0 ?o0 .");
+        else
+        {
+            logger.info("Custom element has been requested (with depth  " + depth + "): " + requestedElement);
+            queryString.append("CONSTRUCT { ?s0 ?p0 ?o0 . ");
+        }
 
         for(int i = 0; i < depth; i++)
         {
             queryString.append("?o").append(i).append(" ?p").append(i + 1).append(" ?o").append(i + 1).append(" . ");
         }
+
+        //Close CONSTRUCT brackets
         queryString.append(" } ");
-        //"?o ?p2 ?o2 . ?o2 ?p3 ?o3 . ?o3 ?p4 ?o4 . ?o4 ?p5 ?o5 . ?o5 ?p6 ?o6 . ?o6 ?p7 ?o7 . ?o7 ?p8 ?o8 . ?o8 ?p9 ?o9 . ?o9 ?p10 ?o10 . ?o10 ?p11 ?o11 . ?o11 ?p12 ?o12 . } ");
         repositoryFacade.getActiveGraphs().forEach(graphName -> queryString.append("FROM NAMED <").append(graphName).append("> "));
         queryString.append("WHERE { ");
-        queryString.append("BIND(<").append(requestedElement.toString()).append("> AS ?s0) . GRAPH ?g { ?s0 ?p0 ?o0 . ");
+
+        if(!atRoot)
+        {
+            //first ?s0 ?p0 ?o0 NOT in optional block. If unknown resource is requested, error should be thrown
+            queryString.append("BIND(<").append(requestedElement.toString()).append("> AS ?s0) . GRAPH ?g { ?s0 ?p0 ?o0 . ");
+        }
+
+
+        else
+        {
+            //First ?s0 ?p0 ?o0 IS in optional block. If catalog is empty, no error should be thrown
+            //At this stage, the ontology class hierarchy is not respected in queries. Therefore, we will list all Connector types
+            queryString.append("GRAPH ?g { OPTIONAL { ?s0 ?p0 ?o0 . ?s0 a ?s0type . FILTER( ?s0type IN ( ids:BaseConnector, ids:TrustedConnector, ids:Connector ) ) . ");
+        }
 
         for(int i = 0; i < depth; i++)
         {
@@ -94,6 +115,12 @@ public class DescriptionProvider {
         queryString.append("} ".repeat(Math.max(0, depth)));
 
         queryString.append("} }"); //Brackets from graph and where
+
+        if(atRoot)
+        {
+            //At root, there is one more OPTIONAL
+            queryString.append(" }");
+        }
 
         //Fire construct query against triple store
         Model result = repositoryFacade.constructQuery(queryString.toString());

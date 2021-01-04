@@ -6,6 +6,7 @@ import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.component.core.SecurityTokenProvider;
 import de.fraunhofer.iais.eis.ids.component.core.TokenRetrievalException;
 import de.fraunhofer.iais.eis.ids.component.core.map.DescriptionRequestMAP;
+import de.fraunhofer.iais.eis.ids.component.core.map.DescriptionResponseMAP;
 import de.fraunhofer.iais.eis.ids.component.core.util.CalendarUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,7 @@ import java.util.Collections;
  * Message handler class, forwarding the request to the DescriptionProvider and responding with a DescriptionResponseMessage
  * @author maboeckmann
  */
-public class DescriptionRequestHandler implements MessageHandler<DescriptionRequestMAP, DescriptionResultMAP> {
+public class DescriptionRequestHandler implements MessageHandler<DescriptionRequestMAP, DescriptionResponseMAP> {
 
     private final Logger logger = LoggerFactory.getLogger(DescriptionRequestHandler.class);
     private final DescriptionProvider descriptionProvider;
@@ -45,7 +46,7 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
      * @throws RejectMessageException thrown if an error occurs during the retrieval process, e.g. if the requested object could not be found
      */
     @Override
-    public DescriptionResultMAP handle(DescriptionRequestMAP messageAndPayload) throws RejectMessageException {
+    public DescriptionResponseMAP handle(DescriptionRequestMAP messageAndPayload) throws RejectMessageException {
         String payload;
 
         //Can we come up with a neater way than using a hardcoded URI? This is a custom header not defined elsewhere
@@ -85,21 +86,8 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
             payload = descriptionProvider.getElementAsJsonLd(messageAndPayload.getMessage().getRequestedElement());
         }
         try {
-            //If this point is reached, the retrieval of the requestedElement was successful (otherwise RejectMessageException is thrown)
-            //For REST interface, it is useful to know the class of the requested element
-            String typeOfRequestedElement;
-            if(messageAndPayload.getMessage().getRequestedElement() != null)
-            {
-                typeOfRequestedElement = descriptionProvider.getTypeOfRequestedElement(messageAndPayload.getMessage().getRequestedElement());
-            }
-            else
-            {
-                //No requested element means the root (self-description) was requested
-                typeOfRequestedElement = descriptionProvider.selfDescription.getClass().getSimpleName();
-            }
-
-            //Wrap result in IDS message - these are just the headers
-            DescriptionResponseMessage descriptionResponseMessage = new DescriptionResponseMessageBuilder()
+            //Wrap the result in a DescriptionResponse MessageAndPayload
+            return new DescriptionResponseMAP(new DescriptionResponseMessageBuilder()
                     ._correlationMessage_(messageAndPayload.getMessage().getId())
                     ._issued_(CalendarUtil.now())
                     ._issuerConnector_(descriptionProvider.selfDescription.getId())

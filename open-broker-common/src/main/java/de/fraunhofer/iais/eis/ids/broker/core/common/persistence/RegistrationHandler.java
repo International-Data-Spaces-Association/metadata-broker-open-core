@@ -58,11 +58,11 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
     @Override
     public DefaultSuccessMAP handleValidated(InfrastructureComponentMAP messageAndPayload) throws RejectMessageException {
         Message msg = messageAndPayload.getMessage();
+        URI rewrittenUri = null;
         try {
             if (msg instanceof ConnectorUpdateMessage) {
                 if(messageAndPayload.getPayload().isPresent()) {
-                    infrastructureComponentStatusHandler.updated(messageAndPayload.getPayload().get());
-
+                    rewrittenUri = infrastructureComponentStatusHandler.updated(messageAndPayload.getPayload().get());
                 }
                 else
                 {
@@ -98,11 +98,17 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
 
         try {
             //Let the connector know that the update was successful
-            return new DefaultSuccessMAP(infrastructureComponent.getId(),
+            DefaultSuccessMAP returnValue = new DefaultSuccessMAP(infrastructureComponent.getId(),
                     infrastructureComponent.getOutboundModelVersion(),
                     messageAndPayload.getMessage().getId(),
                     securityTokenProvider.getSecurityTokenAsDAT(),
                     responseSenderUri);
+            if(rewrittenUri != null)
+            {
+                //Attach the rewritten URI to the response, so that the recipient knows under which address the resource can be found
+                returnValue.getMessage().setProperty("Location", "<" + rewrittenUri.toString() + ">");
+            }
+            return returnValue;
         }
         //Thrown in case the broker is unable to obtain its own security token from the DAPS
         catch (TokenRetrievalException e)

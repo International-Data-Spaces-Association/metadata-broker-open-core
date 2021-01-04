@@ -49,11 +49,12 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
     @Override
     public DefaultSuccessMAP handleValidated(ResourceMAP messageAndPayload) throws RejectMessageException {
         Message msg = messageAndPayload.getMessage();
+        URI rewrittenUri = null;
         try {
             if (msg instanceof ResourceUpdateMessage) {
                 //ResourceUpdateMessages have the affected Resource in their payload
                 if (((ResourceUpdateMessage) msg).getAffectedResource() != null && messageAndPayload.getPayload().isPresent()) {
-                    resourceStatusHandler.updated(messageAndPayload.getPayload().get(), msg.getIssuerConnector());
+                    rewrittenUri = resourceStatusHandler.updated(messageAndPayload.getPayload().get(), msg.getIssuerConnector());
                 } else {
                     //If no payload present, Resource cannot be updated
                     throw new RejectMessageException(RejectionReason.BAD_PARAMETERS, new NullPointerException("Affected Resource is null or payload is missing"));
@@ -83,7 +84,13 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
         }
         try {
             //No Exception occurred. Send MessageProcessedNotificationMessage
-            return new DefaultSuccessMAP(infrastructureComponent.getId(), infrastructureComponent.getOutboundModelVersion(), messageAndPayload.getMessage().getId(), securityTokenProvider.getSecurityTokenAsDAT(), responseSenderAgent);
+            DefaultSuccessMAP returnValue = new DefaultSuccessMAP(infrastructureComponent.getId(), infrastructureComponent.getOutboundModelVersion(), messageAndPayload.getMessage().getId(), securityTokenProvider.getSecurityTokenAsDAT(), responseSenderAgent);
+            if(rewrittenUri != null)
+            {
+                //Attach the rewritten URI to the response, so that the recipient knows under which address the resource can be found
+                returnValue.getMessage().setProperty("Location", "<" + rewrittenUri.toString() + ">");
+            }
+            return returnValue;
         }
         catch (TokenRetrievalException e)
         {

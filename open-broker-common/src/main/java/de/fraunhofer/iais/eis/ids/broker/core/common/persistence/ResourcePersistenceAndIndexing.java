@@ -5,6 +5,7 @@ import de.fraunhofer.iais.eis.Resource;
 import de.fraunhofer.iais.eis.ids.broker.core.common.impl.ResourcePersistenceAdapter;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.*;
+import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResourceFactory;
@@ -116,8 +117,17 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      * @throws RejectMessageException thrown, if the update is not permitted, e.g. because the resource of an inactive connector is modified, or if an internal error occurs
      */
     @Override
-    public void updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException {
-        if(!repositoryFacade.graphIsActive(connectorUri.toString())) {
+    public URI updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException {
+        URI catalogUri;
+        try {
+            connectorUri = SelfDescriptionPersistenceAndIndexing.rewriteConnectorUri(connectorUri);
+            catalogUri = getConnectorCatalog(connectorUri);
+            //Rewrite resource
+            resource = new Serializer().deserialize(SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri), Resource.class);
+        } catch (URISyntaxException e) {
+            throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
+        }
+        if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
             connectorUri = URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
             if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
                 throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not actively registered at this broker. Cannot update resource for this connector."));
@@ -125,27 +135,19 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         }
 
         //Try to remove the resource from Triple Store if it exists, so that it is updated properly.
-        if(resourceExists(resource.getId())) {
+        if (resourceExists(resource.getId())) {
             removeFromTriplestore(resource.getId(), connectorUri);
         }
 
-        //Try to search for a resource with a REST-like name pattern, matching this resource. If it exists, remove it before we add it again
         try {
-            URI alteredResourceUri = tryGetResourceUri(connectorUri, resource.getId());
-            removeFromTriplestore(alteredResourceUri, connectorUri);
-        }
-        catch (RejectMessageException ignored) {}
-
-        try {
-            URI catalogUri = getConnectorCatalog(connectorUri);
             addToTriplestore(resource, connectorUri, catalogUri);
-
-            indexing.update(repositoryFacade.getConnectorFromTripleStore(connectorUri));
-        }
-        catch (URISyntaxException e)
-        {
+        } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
+        indexing.update(repositoryFacade.getConnectorFromTripleStore(connectorUri));
+
+        //Return the updated resource URI
+        return resource.getId();
     }
 
     private URI tryGetResourceUri(URI connectorUri, URI resourceUri) throws RejectMessageException {

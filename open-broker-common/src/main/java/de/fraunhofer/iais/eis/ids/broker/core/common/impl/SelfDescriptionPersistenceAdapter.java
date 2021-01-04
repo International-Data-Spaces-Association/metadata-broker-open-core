@@ -21,11 +21,12 @@ public abstract class SelfDescriptionPersistenceAdapter implements Infrastructur
      * This function stores a new infrastructure component OR updates an existing infrastructure component in the triple store and updates the index correspondingly
      * It should be called when a ConnectorUpdateMessage was received
      * @param infrastructureComponent The new or updated connector which was announced to the broker
+     * @return The new URI of the connector, which may have been rewritten by the broker
      * @throws IOException may be thrown if the connection to the triple store or index fails
      * @throws RejectMessageException may be thrown if, for example, the connector doesn't exist yet or some internal error occurs
      */
     @Override
-    public abstract void updated(InfrastructureComponent infrastructureComponent) throws IOException, RejectMessageException;
+    public abstract URI updated(InfrastructureComponent infrastructureComponent) throws IOException, RejectMessageException;
 
     /**
      * This function removes an existing infrastructure component from the triple store and updates the index correspondingly

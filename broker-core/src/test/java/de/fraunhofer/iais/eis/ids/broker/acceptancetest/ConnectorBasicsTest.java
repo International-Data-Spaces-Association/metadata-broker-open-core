@@ -50,6 +50,7 @@ public class ConnectorBasicsTest {
         Multipart response = componentInteractorSecTokenIgnoring.process(request, RequestType.INFRASTRUCTURE);
 
         Assert.assertNotNull(response.getSerializedPayload());
+        System.out.println(new String(response.getSerializedPayload().getSerialization()));
         Assert.assertTrue(new String(response.getSerializedPayload().getSerialization()).contains("IDS Metadata Broker"));
     }
 

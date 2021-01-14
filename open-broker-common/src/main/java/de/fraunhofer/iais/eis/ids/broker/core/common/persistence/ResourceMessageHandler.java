@@ -4,6 +4,7 @@ import de.fraunhofer.iais.eis.*;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.component.core.SecurityTokenProvider;
 import de.fraunhofer.iais.eis.ids.component.core.TokenRetrievalException;
+import de.fraunhofer.iais.eis.ids.component.core.logging.MessageLogger;
 import de.fraunhofer.iais.eis.ids.component.core.map.DefaultSuccessMAP;
 import de.fraunhofer.iais.eis.ids.connector.commons.broker.SameOriginResourceMapValidationStrategy;
 import de.fraunhofer.iais.eis.ids.connector.commons.messagevalidation.ValidatingMessageHandler;
@@ -48,12 +49,13 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
      */
     @Override
     public DefaultSuccessMAP handleValidated(ResourceMAP messageAndPayload) throws RejectMessageException {
-        Message msg = messageAndPayload.getMessage();
+        ResourceNotificationMessage msg = (ResourceNotificationMessage) messageAndPayload.getMessage();
+        MessageLogger.logMessage(messageAndPayload, true, "affectedResource");
         URI rewrittenUri = null;
         try {
             if (msg instanceof ResourceUpdateMessage) {
                 //ResourceUpdateMessages have the affected Resource in their payload
-                if (((ResourceUpdateMessage) msg).getAffectedResource() != null && messageAndPayload.getPayload().isPresent()) {
+                if (msg.getAffectedResource() != null && messageAndPayload.getPayload().isPresent()) {
                     rewrittenUri = resourceStatusHandler.updated(messageAndPayload.getPayload().get(), msg.getIssuerConnector());
                 } else {
                     //If no payload present, Resource cannot be updated
@@ -61,8 +63,8 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
                 }
             } else if (msg instanceof ResourceUnavailableMessage) {
                 //ResourceUnavailableMessages only contain a reference to the Resource which is now unavailable. Payload should be null
-                if (((ResourceUnavailableMessage) msg).getAffectedResource() != null) {
-                    resourceStatusHandler.unavailable(((ResourceUnavailableMessage) msg).getAffectedResource(), msg.getIssuerConnector());
+                if (msg.getAffectedResource() != null) {
+                    resourceStatusHandler.unavailable(msg.getAffectedResource(), msg.getIssuerConnector());
                 } else {
                     throw new RejectMessageException(RejectionReason.BAD_PARAMETERS, new NullPointerException("Affected Resource is null"));
                 }

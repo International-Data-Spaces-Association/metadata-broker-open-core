@@ -5,6 +5,7 @@ import de.fraunhofer.iais.eis.ids.component.core.MessageHandler;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.component.core.SecurityTokenProvider;
 import de.fraunhofer.iais.eis.ids.component.core.TokenRetrievalException;
+import de.fraunhofer.iais.eis.ids.component.core.logging.MessageLogger;
 import de.fraunhofer.iais.eis.ids.component.core.map.DescriptionRequestMAP;
 import de.fraunhofer.iais.eis.ids.component.core.map.DescriptionResponseMAP;
 import de.fraunhofer.iais.eis.ids.component.core.util.CalendarUtil;
@@ -48,6 +49,9 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
     @Override
     public DescriptionResponseMAP handle(DescriptionRequestMAP messageAndPayload) throws RejectMessageException {
         String payload;
+
+        //Log inbound message
+        MessageLogger.logMessage(messageAndPayload.getMessage(), "requestedElement");
 
         //Can we come up with a neater way than using a hardcoded URI? This is a custom header not defined elsewhere
         //Depth determines whether we should only return information about this object, or also about child objects up to a certain hop limit

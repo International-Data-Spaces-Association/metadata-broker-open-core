@@ -4,6 +4,7 @@ import de.fraunhofer.iais.eis.*;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.component.core.SecurityTokenProvider;
 import de.fraunhofer.iais.eis.ids.component.core.TokenRetrievalException;
+import de.fraunhofer.iais.eis.ids.component.core.logging.MessageLogger;
 import de.fraunhofer.iais.eis.ids.component.core.map.DefaultSuccessMAP;
 import de.fraunhofer.iais.eis.ids.connector.commons.broker.InfrastructureComponentStatusHandler;
 import de.fraunhofer.iais.eis.ids.connector.commons.broker.SameOriginInfrastructureComponentMapValidationStrategy;
@@ -57,11 +58,17 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
      */
     @Override
     public DefaultSuccessMAP handleValidated(InfrastructureComponentMAP messageAndPayload) throws RejectMessageException {
-        Message msg = messageAndPayload.getMessage();
+        ConnectorNotificationMessage msg = (ConnectorNotificationMessage) messageAndPayload.getMessage();
+
+        //Logs the message (depending on settings not the entire message) including the affectedConnector attribute
+        MessageLogger.logMessage(messageAndPayload, true, "affectedConnector");
         URI rewrittenUri = null;
         try {
+            //Message is either ConnectorUpdateMessage or ConnectorUnavailableMessage
             if (msg instanceof ConnectorUpdateMessage) {
+                //Updating existing Connector or registering new Connector
                 if(messageAndPayload.getPayload().isPresent()) {
+                    //Rewrite URL to match our REST scheme
                     rewrittenUri = infrastructureComponentStatusHandler.updated(messageAndPayload.getPayload().get());
                 }
                 else
@@ -70,6 +77,7 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
                 }
             }
             else if (msg instanceof ConnectorUnavailableMessage) {
+                //To unregister, no payload is required
                 infrastructureComponentStatusHandler.unavailable(messageAndPayload.getMessage().getIssuerConnector());
             }
         }

@@ -3,11 +3,13 @@ package de.fraunhofer.iais.eis.ids.index.common.persistence;
 import de.fraunhofer.iais.eis.InfrastructureComponent;
 import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
+import org.apache.jena.query.QuerySolution;
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.ArrayList;
 
 /**
  * Class to provide IDS descriptions of known object, such as registered connectors, participants, a self description of the broker/ParIS itself or its catalog
@@ -135,6 +137,39 @@ public class DescriptionProvider {
         //Turn the result into a string and return
         return ConstructQueryResultHandler.graphToString(result);
 
+    }
+
+    public String getTypeOfRequestedElement(URI requestedElement) throws RejectMessageException {
+        if(requestedElement == null || requestedElement.equals(selfDescription.getId()))
+        {
+            //TODO: More specific subclasses
+            return "https://w3id.org/idsa/core/Connector";
+        }
+        if(requestedElement.equals(catalogUri))
+        {
+            //TODO: ConnectorCatalog or ResourceCatalog?
+            return "https://w3id.org/idsa/core/Catalog";
+        }
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("SELECT ?type ");
+        for(String activeGraph : repositoryFacade.getActiveGraphs())
+        {
+            queryString.append("FROM NAMED <").append(activeGraph).append("> ");
+        }
+        queryString.append(" WHERE { GRAPH ?g { ").append("BIND(<").append(requestedElement.toString()).append("> AS ?s) . ?s a ?type . } } ");
+        ArrayList<QuerySolution> result = repositoryFacade.selectQuery(queryString.toString());
+        if(result == null || result.isEmpty())
+        {
+            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("Could not retrieve type of " + requestedElement));
+        }
+
+        if(result.size() > 1)
+        {
+            RejectMessageException e = new RejectMessageException(RejectionReason.TOO_MANY_RESULTS, new Exception("Could not determine type of " + requestedElement + " (multiple options)"));
+            logger.error("Could not determine the type of a requested element.", e);
+            throw e;
+        }
+        return result.get(0).get("type").toString();
     }
 
 }

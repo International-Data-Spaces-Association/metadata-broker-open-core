@@ -1,7 +1,7 @@
 package de.fraunhofer.iais.eis.ids.broker.main;
 
 import de.fraunhofer.iais.eis.ResourceCatalogBuilder;
-import de.fraunhofer.iais.eis.ids.broker.core.common.impl.ConnectorUnavailableValidationStrategy;
+import de.fraunhofer.iais.eis.ids.broker.core.common.persistence.ConnectorUnavailableValidationStrategy;
 import de.fraunhofer.iais.eis.ids.broker.core.common.persistence.RegistrationHandler;
 import de.fraunhofer.iais.eis.ids.broker.core.common.persistence.ResourceMessageHandler;
 import de.fraunhofer.iais.eis.ids.broker.core.common.persistence.ResourcePersistenceAndIndexing;

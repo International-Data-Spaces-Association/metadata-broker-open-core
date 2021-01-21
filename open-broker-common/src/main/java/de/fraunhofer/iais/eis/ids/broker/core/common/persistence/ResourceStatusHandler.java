@@ -24,8 +24,9 @@ public interface ResourceStatusHandler {
          * Function to persist and index a new resource or modifications made to an existing resource
          * @param resource The new / updated resource which was announced to the broker
          * @param connectorUri The connector which is offering the resource
+         * @return The URI of the resource, which was possibly modified by the broker
          * @throws IOException may be thrown, if the connection to the repository could not be established
          * @throws RejectMessageException may be thrown, if the update is not permitted, e.g. because the resource of an inactive connector is modified, or if an internal error occurs
          */
-        void updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException;
+        URI updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException;
 }

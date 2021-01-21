@@ -24,7 +24,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     private final RepositoryFacade repositoryFacade;
     private Indexing indexing = new NullIndexing();
 
-    private final URI componentCatalogUri;
+    private static URI componentCatalogUri;
 
     /**
      * Constructor
@@ -32,7 +32,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      */
     public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri) {
         this.repositoryFacade = repositoryFacade;
-        this.componentCatalogUri = componentCatalogUri;
+        SelfDescriptionPersistenceAndIndexing.componentCatalogUri = componentCatalogUri;
         Date date=new Date();
         Timer timer = new Timer();
 
@@ -105,7 +105,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      * @param connectorUri Original connector URI
      * @return new connector URI
      */
-    private URI rewriteConnectorUri(URI connectorUri)
+    static URI rewriteConnectorUri(URI connectorUri)
     {
         return URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
     }
@@ -278,7 +278,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      * @throws RejectMessageException thrown, if the update is not permitted, e.g. because the connector was previously deleted, or if an internal error occurs
      */
     @Override
-    public void updated(InfrastructureComponent infrastructureComponent) throws IOException, RejectMessageException {
+    public URI updated(InfrastructureComponent infrastructureComponent) throws IOException, RejectMessageException {
         URI connectorUri = rewriteConnectorUri(infrastructureComponent.getId());
         boolean wasActive = repositoryFacade.graphIsActive(connectorUri.toString());
         boolean existed = repositoryFacade.graphExists(connectorUri.toString());
@@ -323,6 +323,8 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         { //Connector does not exist in index - create it
             indexing.add(infrastructureComponent);
         }
+        //return the (rewritten) URI of the infrastructure component
+        return infrastructureComponent.getId();
     }
 
     /**

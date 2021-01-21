@@ -81,8 +81,9 @@ public class RegistrationHandlerTest {
             }
 
             @Override
-            public void updated(InfrastructureComponent selfDescription) {
+            public URI updated(InfrastructureComponent selfDescription) {
                 Assert.assertEquals(connector, selfDescription);
+                return null;
             }
 
         }, broker, new SecurityTokenProvider() {
@@ -104,8 +105,9 @@ public class RegistrationHandlerTest {
             }
 
             @Override
-            public void updated(InfrastructureComponent selfDescription) {
+            public URI updated(InfrastructureComponent selfDescription) {
                 Assert.fail();
+                return null;
             }
 
         }, broker, new SecurityTokenProvider() {
@@ -129,8 +131,9 @@ public class RegistrationHandlerTest {
             }
 
             @Override
-            public void updated(InfrastructureComponent selfDescription) {
+            public URI updated(InfrastructureComponent selfDescription) {
                 Assert.assertEquals(connector, selfDescription);
+                return null;
             }
 
         }, broker, new SecurityTokenProvider() {

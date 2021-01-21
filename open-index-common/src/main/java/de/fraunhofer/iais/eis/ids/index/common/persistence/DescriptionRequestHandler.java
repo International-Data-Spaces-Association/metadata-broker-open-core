@@ -1,9 +1,6 @@
 package de.fraunhofer.iais.eis.ids.index.common.persistence;
 
-import de.fraunhofer.iais.eis.DescriptionRequestMessage;
-import de.fraunhofer.iais.eis.DescriptionResponseMessageBuilder;
-import de.fraunhofer.iais.eis.Message;
-import de.fraunhofer.iais.eis.RejectionReason;
+import de.fraunhofer.iais.eis.*;
 import de.fraunhofer.iais.eis.ids.component.core.MessageHandler;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.component.core.SecurityTokenProvider;
@@ -89,15 +86,35 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
             payload = descriptionProvider.getElementAsJsonLd(messageAndPayload.getMessage().getRequestedElement());
         }
         try {
+            //If this point is reached, the retrieval of the requestedElement was successful (otherwise RejectMessageException is thrown)
+            //For REST interface, it is useful to know the class of the requested element
+            String typeOfRequestedElement;
+            if(messageAndPayload.getMessage().getRequestedElement() != null)
+            {
+                typeOfRequestedElement = descriptionProvider.getTypeOfRequestedElement(messageAndPayload.getMessage().getRequestedElement());
+            }
+            else
+            {
+                //No requested element means the root (self-description) was requested
+                typeOfRequestedElement = descriptionProvider.selfDescription.getClass().getSimpleName();
+            }
+
+
             //Wrap the result in a DescriptionResponse MessageAndPayload
-            return new DescriptionResponseMAP(new DescriptionResponseMessageBuilder()
+            DescriptionResponseMessage descriptionResponseMessage = new DescriptionResponseMessageBuilder()
                     ._correlationMessage_(messageAndPayload.getMessage().getId())
                     ._issued_(CalendarUtil.now())
                     ._issuerConnector_(descriptionProvider.selfDescription.getId())
                     ._modelVersion_(descriptionProvider.selfDescription.getOutboundModelVersion())
                     ._securityToken_(securityTokenProvider.getSecurityTokenAsDAT())
                     ._senderAgent_(responseSenderAgentUri)
-                    .build(),
+                    .build();
+
+            //Attach a custom property, containing the type of the returned element
+            descriptionResponseMessage.setProperty("elementType", typeOfRequestedElement);
+
+            //Wrap the result in a DescriptionResult MessageAndPayload
+            return new DescriptionResponseMAP(descriptionResponseMessage,
                     payload //Payload is the JSON-LD representation of the requested element
             );
         }

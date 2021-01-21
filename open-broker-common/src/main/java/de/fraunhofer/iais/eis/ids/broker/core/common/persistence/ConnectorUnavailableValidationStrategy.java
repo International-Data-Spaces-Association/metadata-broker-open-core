@@ -1,4 +1,4 @@
-package de.fraunhofer.iais.eis.ids.broker.core.common.impl;
+package de.fraunhofer.iais.eis.ids.broker.core.common.persistence;
 
 
 import de.fraunhofer.iais.eis.Connector;
@@ -9,6 +9,8 @@ import de.fraunhofer.iais.eis.ids.connector.commons.broker.map.InfrastructureCom
 import de.fraunhofer.iais.eis.ids.connector.commons.messagevalidation.MapValidationException;
 import de.fraunhofer.iais.eis.ids.connector.commons.messagevalidation.MapValidationStrategy;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.RepositoryFacade;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
@@ -20,6 +22,8 @@ public class ConnectorUnavailableValidationStrategy implements MapValidationStra
 
     //Repository facade allows access to the triple store to look up values of connector to be altered
     private final RepositoryFacade repositoryFacade;
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
      * Constructor
@@ -42,8 +46,20 @@ public class ConnectorUnavailableValidationStrategy implements MapValidationStra
 
         Message msg = map.getMessage();
         if (msg instanceof ConnectorUnavailableMessage) {
-            URI issuer = msg.getIssuerConnector();
-            URI affected = ((ConnectorUnavailableMessage) msg).getAffectedConnector();
+            //URIs of registered connectors are rewritten. Need to make sure to rewrite this URI in the same way
+            URI issuer = SelfDescriptionPersistenceAndIndexing.rewriteConnectorUri(msg.getIssuerConnector());
+
+            //Usually, the URI of the affected connector SHOULD already have been rewritten. For ease of use, we cover both cases here
+            URI affected = ((ConnectorUnavailableMessage)msg).getAffectedConnector();
+
+            //Check whether affectedConnector has been rewritten already by the client. Rewriting an already rewritten URI will result in a different (wrong) URI
+            if(!affected.getHost().equals(issuer.getHost()))
+            {
+                //It has not been rewritten
+                affected = SelfDescriptionPersistenceAndIndexing.rewriteConnectorUri(affected);
+            }
+
+            logger.debug("Signing off connector. Validating legitimacy. Issuer: " + issuer + " - affected: " + affected);
 
             //Self-de-registration?
             if (!issuer.equals(affected)) {
@@ -63,6 +79,8 @@ public class ConnectorUnavailableValidationStrategy implements MapValidationStra
                     throw new MapValidationException("You may not sign off a foreign connector");
                 }
             }
+
+            logger.debug("ConnectorUnavailableValidationStrategy passed.");
         }
     }
 }

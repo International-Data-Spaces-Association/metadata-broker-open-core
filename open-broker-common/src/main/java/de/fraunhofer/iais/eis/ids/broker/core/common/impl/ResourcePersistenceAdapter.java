@@ -18,11 +18,12 @@ public abstract class ResourcePersistenceAdapter implements ResourceStatusHandle
      * It should be called when a ResourceUpdateMessage was received
      * @param resource The new / updated resource which was announced to the broker
      * @param connectorUri The connector which is offering the resource
+     * @return The new URI of the resource, which may have been rewritten by the broker
      * @throws IOException may be thrown if the connection to the triple store or index fails
      * @throws RejectMessageException may be thrown if, for example, the resource doesn't exist yet or some internal error occurs
      */
     @Override
-    public abstract void updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException;
+    public abstract URI updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException;
 
     /**
      * This function removes an existing resource from the triple store and updates the index correspondingly

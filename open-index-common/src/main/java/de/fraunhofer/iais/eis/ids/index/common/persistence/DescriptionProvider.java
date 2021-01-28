@@ -5,6 +5,7 @@ import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.riot.Lang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,23 +44,25 @@ public class DescriptionProvider {
     }
 
     /**
-     * The single function to get the description of an element in JSON-LD
+     * The single function to get the description of an element in the desired serialization
      * @param requestedElement The URI of the element to be described
+     * @param desiredLanguage The serialization in which the RDF should be returned
      * @return A JSON-LD description of the object, if it is known to the broker/ParIS
      * @throws RejectMessageException thrown if the requested object is not known or could not be retrieved
      */
-    public String getElementAsJsonLd(URI requestedElement) throws RejectMessageException {
-        return getElementAsJsonLd(requestedElement, 0);
+    public String getElement(URI requestedElement, Lang desiredLanguage) throws RejectMessageException {
+        return getElement(requestedElement, 0, desiredLanguage);
     }
 
     /**
-     * The single function to get the description of an element in JSON-LD
+     * The single function to get the description of an element in the desired serialization
      * @param requestedElement The URI of the element to be described
      * @param depth The depth to which we should show child elements
+     * @param desiredLanguage The serialization in which the RDF should be returned
      * @return A JSON-LD description of the object, if it is known to the broker/ParIS
      * @throws RejectMessageException thrown if the requested object is not known or could not be retrieved
      */
-    public String getElementAsJsonLd(URI requestedElement, int depth) throws RejectMessageException {
+    public String getElement(URI requestedElement, int depth, Lang desiredLanguage) throws RejectMessageException {
 
         //Check if a self description is requested
         if(requestedElement == null || requestedElement.equals(selfDescription.getId()))
@@ -135,7 +138,7 @@ public class DescriptionProvider {
         }
 
         //Turn the result into a string and return
-        return ConstructQueryResultHandler.graphToString(result);
+        return ConstructQueryResultHandler.graphToString(result, desiredLanguage);
 
     }
 

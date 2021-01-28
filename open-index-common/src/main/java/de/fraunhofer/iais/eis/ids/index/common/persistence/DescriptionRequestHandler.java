@@ -9,12 +9,18 @@ import de.fraunhofer.iais.eis.ids.component.core.logging.MessageLogger;
 import de.fraunhofer.iais.eis.ids.component.core.map.DescriptionRequestMAP;
 import de.fraunhofer.iais.eis.ids.component.core.map.DescriptionResponseMAP;
 import de.fraunhofer.iais.eis.ids.component.core.util.CalendarUtil;
+import de.fraunhofer.iais.eis.util.TypedLiteral;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.stream.Collectors;
 
 /**
  * Message handler class, forwarding the request to the DescriptionProvider and responding with a DescriptionResponseMessage
@@ -50,45 +56,79 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
     public DescriptionResponseMAP handle(DescriptionRequestMAP messageAndPayload) throws RejectMessageException {
         String payload;
 
+        //This is against the recommendations of the LDP specification (recommends to default to Turtle), but is the expected behaviour in IDS
+        Lang outputLanguage = RDFLanguages.JSONLD;
+        int depth = 0;
+
         //Log inbound message
         MessageLogger.logMessage(messageAndPayload.getMessage(), "requestedElement");
 
         //Can we come up with a neater way than using a hardcoded URI? This is a custom header not defined elsewhere
         //Depth determines whether we should only return information about this object, or also about child objects up to a certain hop limit
-        if(messageAndPayload.getMessage().getProperties() != null && messageAndPayload.getMessage().getProperties().containsKey("https://w3id.org/idsa/core/depth"))
+        if(messageAndPayload.getMessage().getProperties() != null)
         {
-            //0 is the default value, meaning absolutely no child objects are expanded. Only their URI is shown, which one can dereference to obtain further information
-            int depth = 0;
-            try {
-                //Check out whether a custom depth is provided (in valid format)
-                String propertyValue = messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/depth").toString();
-                if(propertyValue.contains("^^")) //expecting something like: 0^^xsd:integer
-                {
-                    //Only take numeric part, plus quotation marks
-                    propertyValue = propertyValue.substring(0, propertyValue.indexOf("^^"));
-                }
-                //Remove quotation marks
-                propertyValue = propertyValue.replace("\"", "");
-                //Rest should be a number. Try to parse. If it fails, we use default depth, see caught exception
-                depth = Integer.parseInt(propertyValue);
-                if(depth > maxDepth)
-                {
-                    //Only allow up to a certain depth
-                    depth = maxDepth;
-                }
-            }
-            catch (NumberFormatException e)
+            //Content negotiation
+            if(messageAndPayload.getMessage().getProperties().containsKey("https://w3id.org/idsa/core/accept"))
             {
-                //Invalid depth provided. For debugging, we are printing this, but otherwise ignoring the parameter, using the default value instead
-                logger.warn("Failed to parse depth header of incoming message to a number.", e);
+                ArrayList<String> acceptStrings = new ArrayList<>();
+                Object acceptObject = messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/accept");
+                if(TypedLiteral.class.isAssignableFrom(acceptObject.getClass())) //single Accept header?
+                {
+                    String acceptable = acceptObject.toString().replace("\"", "").replace("^^http://www.w3.org/2001/XMLSchema#string", "");
+                    if(acceptable.contains(","))
+                    {
+                        acceptStrings.addAll(Arrays.asList(acceptable.split(",")));
+                    }
+                    else
+                    {
+                        acceptStrings.add(acceptable);
+                    }
+                }
+                else { //Multiple Accept header - ArrayList<TypedLiteral> present
+                    ArrayList<TypedLiteral> acceptTypedLiterals = (ArrayList<TypedLiteral>) messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/accept");
+                    acceptStrings = acceptTypedLiterals.stream().map(TypedLiteral::toString).map(s -> s.replace("\"", "").replace("^^http://www.w3.org/2001/XMLSchema#string", "")).collect(Collectors.toCollection(ArrayList::new));
+                }
+                if(acceptStrings.contains("text/turtle")) //If Turtle is among the Accept Headers (with high priority), we MUST return that, according to LDP specification
+                {
+                    outputLanguage = RDFLanguages.TURTLE;
+                } else if (acceptStrings.contains("application/ld+json")) {
+                    outputLanguage = RDFLanguages.JSONLD;
+                }
+                else if(acceptStrings.contains("application/n-triples"))
+                {
+                    outputLanguage = RDFLanguages.NTRIPLES;
+                }
+                else if(acceptStrings.contains("application/rdf+xml"))
+                {
+                    outputLanguage = RDFLanguages.RDFXML;
+                }
             }
-            //Retrieve object with custom depth
-            payload = descriptionProvider.getElementAsJsonLd(messageAndPayload.getMessage().getRequestedElement(), depth);
+            if(messageAndPayload.getMessage().getProperties().containsKey("https://w3id.org/idsa/core/depth")) {
+                //0 is the default value, meaning absolutely no child objects are expanded. Only their URI is shown, which one can dereference to obtain further information
+                try {
+                    //Check out whether a custom depth is provided (in valid format)
+                    String propertyValue = messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/depth").toString();
+                    if (propertyValue.contains("^^")) //expecting something like: 0^^xsd:integer
+                    {
+                        //Only take numeric part, plus quotation marks
+                        propertyValue = propertyValue.substring(0, propertyValue.indexOf("^^"));
+                    }
+                    //Remove quotation marks
+                    propertyValue = propertyValue.replace("\"", "");
+                    //Rest should be a number. Try to parse. If it fails, we use default depth, see caught exception
+                    depth = Integer.parseInt(propertyValue);
+                    if (depth > maxDepth) {
+                        //Only allow up to a certain depth
+                        depth = maxDepth;
+                    }
+                } catch (NumberFormatException e) {
+                    //Invalid depth provided. For debugging, we are printing this, but otherwise ignoring the parameter, using the default value instead
+                    logger.warn("Failed to parse depth header of incoming message to a number.", e);
+                }
+            }
         }
-        else {
-            //Retrieve object with default depth
-            payload = descriptionProvider.getElementAsJsonLd(messageAndPayload.getMessage().getRequestedElement());
-        }
+        //Retrieve object with possibly custom depth
+        payload = descriptionProvider.getElement(messageAndPayload.getMessage().getRequestedElement(), depth, outputLanguage);
         try {
             //If this point is reached, the retrieval of the requestedElement was successful (otherwise RejectMessageException is thrown)
             //For REST interface, it is useful to know the class of the requested element

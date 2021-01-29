@@ -70,21 +70,25 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
             //Content negotiation
             if(messageAndPayload.getMessage().getProperties().containsKey("https://w3id.org/idsa/core/accept"))
             {
+                //Try to retrieve Accept headers from request
                 ArrayList<String> acceptStrings = new ArrayList<>();
                 Object acceptObject = messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/accept");
+
+                //The value should be a comma separated string, wrapped by Jena in a TypedLiteral
                 if(TypedLiteral.class.isAssignableFrom(acceptObject.getClass())) //single Accept header?
                 {
+                    //Throw away datatype definition of variable
                     String acceptable = acceptObject.toString().replace("\"", "").replace("^^http://www.w3.org/2001/XMLSchema#string", "");
-                    if(acceptable.contains(","))
+                    if(acceptable.contains(",")) //Multiple values?
                     {
                         acceptStrings.addAll(Arrays.asList(acceptable.split(",")));
                     }
                     else
-                    {
+                    { //singular value
                         acceptStrings.add(acceptable);
                     }
                 }
-                else { //Multiple Accept header - ArrayList<TypedLiteral> present
+                else { //For some reason, sometimes Jena presented this as an ArrayList of TypedLiteral instead. Handle this case here
                     ArrayList<TypedLiteral> acceptTypedLiterals = (ArrayList<TypedLiteral>) messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/accept");
                     acceptStrings = acceptTypedLiterals.stream().map(TypedLiteral::toString).map(s -> s.replace("\"", "").replace("^^http://www.w3.org/2001/XMLSchema#string", "")).collect(Collectors.toCollection(ArrayList::new));
                 }
@@ -92,17 +96,18 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
                 {
                     outputLanguage = RDFLanguages.TURTLE;
                 } else if (acceptStrings.contains("application/ld+json")) {
-                    outputLanguage = RDFLanguages.JSONLD;
+                    outputLanguage = RDFLanguages.JSONLD; //Stick with the default value, if Turtle was not explicitly requested (2nd priority)
                 }
-                else if(acceptStrings.contains("application/n-triples"))
+                else if(acceptStrings.contains("application/n-triples")) //Otherwise check for n-triples (3rd priority)
                 {
                     outputLanguage = RDFLanguages.NTRIPLES;
                 }
-                else if(acceptStrings.contains("application/rdf+xml"))
+                else if(acceptStrings.contains("application/rdf+xml")) //4th priority is RDF XML
                 {
                     outputLanguage = RDFLanguages.RDFXML;
                 }
             }
+            //Check if we need to provide also information about child nodes of the requested element
             if(messageAndPayload.getMessage().getProperties().containsKey("https://w3id.org/idsa/core/depth")) {
                 //0 is the default value, meaning absolutely no child objects are expanded. Only their URI is shown, which one can dereference to obtain further information
                 try {
@@ -156,6 +161,9 @@ public class DescriptionRequestHandler implements MessageHandler<DescriptionRequ
 
             //Attach a custom property, containing the type of the returned element
             descriptionResponseMessage.setProperty("elementType", typeOfRequestedElement);
+
+            //Attach which serialization was used. This is important for Content Negotiation headers
+            descriptionResponseMessage.setProperty("Serialization", outputLanguage.toString());
 
             //Wrap the result in a DescriptionResult MessageAndPayload
             return new DescriptionResponseMAP(descriptionResponseMessage,

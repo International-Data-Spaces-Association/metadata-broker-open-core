@@ -48,11 +48,22 @@
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
+            <groupId>de.fraunhofer.iais.eis.ids</groupId>
+            <artifactId>open-index-common</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.13.1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.8.0-beta4</version>
+        </dependency>
+
         <!-- JSON. TODO, do testing in a better way, not requiring this dependency  -->
         <dependency>
             <groupId>com.vaadin.external.google</groupId>

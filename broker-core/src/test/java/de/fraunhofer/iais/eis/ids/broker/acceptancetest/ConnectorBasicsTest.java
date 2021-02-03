@@ -22,7 +22,6 @@ import java.net.URL;
 public class ConnectorBasicsTest {
 
     private MultipartComponentInteractor componentInteractorSecTokenIgnoring;
-    private MultipartComponentInteractor componentInteractorSecTokenVerifying;
     private final DynamicAttributeToken dummyToken = new DynamicAttributeTokenBuilder()._tokenFormat_(TokenFormat.JWT)._tokenValue_("test1234").build();
 
     @Before
@@ -32,7 +31,7 @@ public class ConnectorBasicsTest {
 
         AppConfig secTokenVerifyingConfig = new AppConfig(new NullBrokerSelfDescription());
         secTokenVerifyingConfig.dapsValidateIncoming(true);
-        componentInteractorSecTokenVerifying = secTokenVerifyingConfig.build();
+        MultipartComponentInteractor componentInteractorSecTokenVerifying = secTokenVerifyingConfig.build();
 
     }
 
@@ -50,7 +49,6 @@ public class ConnectorBasicsTest {
         Multipart response = componentInteractorSecTokenIgnoring.process(request, RequestType.INFRASTRUCTURE);
 
         Assert.assertNotNull(response.getSerializedPayload());
-        System.out.println(new String(response.getSerializedPayload().getSerialization()));
         Assert.assertTrue(new String(response.getSerializedPayload().getSerialization()).contains("IDS Metadata Broker"));
     }
 
@@ -76,14 +74,6 @@ public class ConnectorBasicsTest {
             return;
         }
         Assert.fail();
-        /*
-        Multipart request = new Multipart(new SelfDescriptionRequestMAP(selfDescriptionRequest));
-        Multipart response = componentInteractorSecTokenVerifying.process(request, RequestType.INFRASTRUCTURE);
-
-        // expect a rejection because no security token has been sent along with the request
-        Message responseMsg = response.toMap().getMessage();
-        Assert.assertTrue(responseMsg instanceof RejectionMessage);
-        Assert.assertEquals(RejectionReason.NOT_AUTHENTICATED, ((RejectionMessage) responseMsg).getRejectionReason());*/
     }
 
 }

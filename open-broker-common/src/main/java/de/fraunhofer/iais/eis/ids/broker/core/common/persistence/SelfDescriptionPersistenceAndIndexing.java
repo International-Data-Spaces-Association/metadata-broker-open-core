@@ -5,12 +5,19 @@ import de.fraunhofer.iais.eis.ids.broker.core.common.impl.SelfDescriptionPersist
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.*;
 import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.ResourceFactory;
+import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -25,6 +32,8 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     private Indexing indexing = new NullIndexing();
 
     private static URI componentCatalogUri;
+
+    static Map<URI, URI> replacedIds;
 
     /**
      * Constructor
@@ -43,6 +52,8 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
                 refreshIndex();
             }
         },date, 12*60*60*1000); //12*60*60*1000 add 12 hours delay between job executions.
+
+        Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
     }
 
     /**
@@ -96,6 +107,8 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      */
     static private String doReplace(String input, URI oldURI, URI newURI)
     {
+        //Store the original URI, so that we can add an owl:sameAs statement, indicating the original URI
+        replacedIds.put(oldURI, newURI);
         //Make sure that we replace only "full URIs" and don't replace the URI if it is only part of a longer URI
         return input.replace("\"" + oldURI + "\"", "\"" + newURI + "\"");
     }
@@ -233,7 +246,8 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      */
     private InfrastructureComponent replaceIds(InfrastructureComponent infrastructureComponent) throws IOException, URISyntaxException, RejectMessageException {
         //Collect all relevant IDs of IDS items (connector, catalogs, resources, representations, artifacts) replace them later
-
+        //New object is handled, reset the replaced IDs
+        replacedIds = new HashMap<>();
         //TODO: Ideally, use relative URIs: "./ + hashCode" instead, but Serializer (Jena) fails on that. We don't really want to store the full URI here, as that makes the broker un-portable
         if(infrastructureComponent.getId() == null)
         {
@@ -266,8 +280,27 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
                 }
             }
         }
-        //TODO: Store "old" URIs in properties map
-        return new Serializer().deserialize(currentString, InfrastructureComponent.class);
+        //Now that we replaced all the IDs, add owl:sameAs statements and then parse
+        return new Serializer().deserialize(addSameAsStatements(currentString), InfrastructureComponent.class);
+    }
+
+    /**
+     * This internal function adds the replaced URIs as owl:sameAs statements to preserve the original URIs
+     * @param jsonLd RDF string after replacements
+     * @return Apache Jena Model with additional sameAs statements
+     */
+    static Model addSameAsStatements(String jsonLd)
+    {
+        Model model = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(model, new ByteArrayInputStream(jsonLd.getBytes(StandardCharsets.UTF_8)), RDFLanguages.JSONLD);
+        for(Map.Entry<URI, URI> entry : replacedIds.entrySet())
+        {
+            model.add(ResourceFactory.createStatement( //Add a new triple to the model
+                    ResourceFactory.createResource(entry.getValue().toString()), //Subject: The new URI
+                    ResourceFactory.createProperty("http://www.w3.org/2002/07/owl#sameAs"), //Predicate: owl:sameAs
+                    ResourceFactory.createResource(entry.getKey().toString()))); //Object: The original URI
+        }
+        return model;
     }
 
 

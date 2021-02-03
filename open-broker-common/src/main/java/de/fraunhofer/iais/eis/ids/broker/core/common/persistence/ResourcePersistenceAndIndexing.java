@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * This class takes care of persisting and indexing any changes to resources that are announced to the broker
@@ -38,6 +39,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     public ResourcePersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri) {
         this.repositoryFacade = repositoryFacade;
         this.componentCatalogUri = componentCatalogUri;
+        Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
     }
 
     /**
@@ -122,8 +124,13 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         try {
             connectorUri = SelfDescriptionPersistenceAndIndexing.rewriteConnectorUri(connectorUri);
             catalogUri = getConnectorCatalog(connectorUri);
+
             //Rewrite resource
-            resource = new Serializer().deserialize(SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri), Resource.class);
+            SelfDescriptionPersistenceAndIndexing.replacedIds = new HashMap<>(); //Clear the map tracking all URIs that were replaced
+            resource = new Serializer().deserialize( //Parse to Java Class
+                    SelfDescriptionPersistenceAndIndexing.addSameAsStatements( //Add owl:sameAs statements for all URIs we are replacing
+                            SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri)), //Replace URIs
+                    Resource.class); //Result of parsing should be a Resource
         } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }

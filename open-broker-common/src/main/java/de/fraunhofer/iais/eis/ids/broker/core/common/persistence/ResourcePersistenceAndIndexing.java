@@ -220,7 +220,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         //?catalog ids:offeredResource ?resource
         //subject, predicate and object of the triple
         Model m = result.getModel();
-        m.add(ResourceFactory.createResource(catalogUri.toString()), ResourceFactory.createProperty("https://w3id.org/idsa/core/resourceOffer"), ResourceFactory.createResource(resource.getId().toString()));
+        m.add(ResourceFactory.createResource(catalogUri.toString()), ResourceFactory.createProperty("https://w3id.org/idsa/core/offeredResource"), ResourceFactory.createResource(resource.getId().toString()));
         repositoryFacade.addStatements(result.getModel(), result.getNamedGraph().toString());
     }
 

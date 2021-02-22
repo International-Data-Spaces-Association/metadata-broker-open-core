@@ -26,7 +26,7 @@ import java.util.HashMap;
 public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     private final ResourceModelCreator resourceModelCreator = new ResourceModelCreator();
 
-    private final RepositoryFacade repositoryFacade;
+    private static RepositoryFacade repositoryFacade;
     private Indexing indexing = new NullIndexing();
 
     private final URI componentCatalogUri;
@@ -37,7 +37,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      * @param repositoryFacade repository (triple store) to which the modifications should be stored
      */
     public ResourcePersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri) {
-        this.repositoryFacade = repositoryFacade;
+        ResourcePersistenceAndIndexing.repositoryFacade = repositoryFacade;
         this.componentCatalogUri = componentCatalogUri;
         Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
     }
@@ -93,7 +93,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      * @return true, if the resource is known to the broker AND the connector holding the resource is non-passivated and non-deleted
      * @throws RejectMessageException if an internal error occurs
      */
-    private boolean resourceExists(URI resourceUri) throws RejectMessageException {
+    @Override
+    public boolean resourceExists(URI resourceUri) throws RejectMessageException {
         try {
             StringBuilder queryString = new StringBuilder();
             queryString.append("PREFIX ids: <https://w3id.org/idsa/core/> ");
@@ -157,7 +158,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         return resource.getId();
     }
 
-    private URI tryGetResourceUri(URI connectorUri, URI resourceUri) throws RejectMessageException {
+    static URI tryGetRewrittenResourceUri(URI connectorUri, URI resourceUri) throws RejectMessageException {
         String queryString = "PREFIX ids: <https://w3id.org/idsa/core/> SELECT ?uri FROM NAMED <" + connectorUri.toString() + "> WHERE { GRAPH ?g { ?uri a ids:Resource . FILTER regex( str(?uri), \"" + resourceUri.hashCode() + "\" ) } } ";
         ArrayList<QuerySolution> solution = repositoryFacade.selectQuery(queryString);
         if(solution != null && !solution.isEmpty())
@@ -187,7 +188,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector from which you are trying to sign off a resource was not found or is not active."));
         }
         if(!resourceExists(resourceUri)) {
-            resourceUri = tryGetResourceUri(connectorUri, resourceUri);
+            resourceUri = tryGetRewrittenResourceUri(connectorUri, resourceUri);
         }
         removeFromTriplestore(resourceUri, connectorUri);
         indexing.update(repositoryFacade.getConnectorFromTripleStore(connectorUri));
@@ -239,7 +240,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
                 throw new RejectMessageException(RejectionReason.NOT_FOUND, new Exception("The resource you are trying to delete was not found, or the graph owning the resource is not active (i.e. unavailable)."));
             }
             //At this stage, we need to rewrite the URI of the resource to our REST-like scheme
-            resourceUri = tryGetResourceUri(connectorUri, resourceUri);
+            resourceUri = tryGetRewrittenResourceUri(connectorUri, resourceUri);
         }
         //Grab "all" information about a Resource. This includes everything pointing at a resource as well as all child objects of a resource, up to a (rather arbitrary) depth of 7
         Model graphQueryResult = repositoryFacade.constructQuery(

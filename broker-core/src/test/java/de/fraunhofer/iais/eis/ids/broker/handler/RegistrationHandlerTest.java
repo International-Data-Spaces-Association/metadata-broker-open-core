@@ -8,6 +8,7 @@ import de.fraunhofer.iais.eis.ids.component.core.TokenRetrievalException;
 import de.fraunhofer.iais.eis.ids.component.core.util.CalendarUtil;
 import de.fraunhofer.iais.eis.ids.connector.commons.broker.InfrastructureComponentStatusHandler;
 import de.fraunhofer.iais.eis.ids.connector.commons.broker.map.InfrastructureComponentMAP;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.RepositoryFacade;
 import de.fraunhofer.iais.eis.util.TypedLiteral;
 import de.fraunhofer.iais.eis.util.Util;
 import org.junit.Assert;
@@ -91,7 +92,7 @@ public class RegistrationHandlerTest {
             public String getSecurityToken() {
                 return "test1234";
             }
-        }, new URI("http://example.org/"));
+        }, new RepositoryFacade(), new URI("http://example.org/"));
         registrationHandler.handle(new InfrastructureComponentMAP(connectorAvailable, connector));
     }
 
@@ -115,7 +116,7 @@ public class RegistrationHandlerTest {
             public String getSecurityToken() {
                 return "test1234";
             }
-        }, new URI("http://example.org/"));
+        }, new RepositoryFacade(), new URI("http://example.org/"));
 
         registrationHandler.handle(new InfrastructureComponentMAP(connectorUnavailable));
     }
@@ -141,7 +142,7 @@ public class RegistrationHandlerTest {
             public String getSecurityToken() {
                 return "test1234";
             }
-        }, new URI("http://example.org/"));
+        }, new RepositoryFacade(), new URI("http://example.org/"));
 
         registrationHandler.handle(new InfrastructureComponentMAP(connectorAvailable, connector));
     }

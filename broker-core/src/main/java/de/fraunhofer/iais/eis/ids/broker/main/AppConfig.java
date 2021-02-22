@@ -80,14 +80,14 @@ public class AppConfig extends AppConfigTemplate {
         ConstructQueryResultHandler.catalogUri = (catalogUri == null) ? new ResourceCatalogBuilder().build().getId().toString() : catalogUri.toString();
 
         //Message handler for ConnectorUpdateMessages and ConnectorUnavailableMessages
-        RegistrationHandler registrationHandler = new RegistrationHandler(selfDescriptionPersistence, selfDescriptionProvider.getSelfDescription(), securityTokenProvider, responseSenderAgent);
+        RegistrationHandler registrationHandler = new RegistrationHandler(selfDescriptionPersistence, selfDescriptionProvider.getSelfDescription(), securityTokenProvider, repositoryFacade, responseSenderAgent);
         //Add some security checks, e.g. preventing signing off of other connectors
         registrationHandler.addMapValidationStrategy(new ConnectorUnavailableValidationStrategy(repositoryFacade));
         //Message handler for QueryMessages
         QueryHandler queryHandler = new QueryHandler(selfDescriptionProvider.getSelfDescription(), selfDescriptionPersistence, securityTokenProvider, responseSenderAgent);
 
         //Message handler for ResourceUpdateMessages and ResourceUnavailableMessages
-        ResourceMessageHandler resourceHandler = new ResourceMessageHandler(resourcePersistenceAndIndexing, selfDescriptionProvider.getSelfDescription(), securityTokenProvider, responseSenderAgent);
+        ResourceMessageHandler resourceHandler = new ResourceMessageHandler(resourcePersistenceAndIndexing, selfDescriptionProvider.getSelfDescription(), securityTokenProvider, repositoryFacade, responseSenderAgent);
 
         //Component object required for interactions
         DefaultComponent component = new DefaultComponent(selfDescriptionProvider, securityTokenProvider, responseSenderAgent, false);

@@ -9,6 +9,7 @@ import de.fraunhofer.iais.eis.ids.component.core.map.DefaultSuccessMAP;
 import de.fraunhofer.iais.eis.ids.connector.commons.broker.SameOriginResourceMapValidationStrategy;
 import de.fraunhofer.iais.eis.ids.connector.commons.messagevalidation.ValidatingMessageHandler;
 import de.fraunhofer.iais.eis.ids.connector.commons.resource.map.ResourceMAP;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.RepositoryFacade;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -24,6 +25,7 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
     private final InfrastructureComponent infrastructureComponent;
     private final SecurityTokenProvider securityTokenProvider;
     private final URI responseSenderAgent;
+    private final RepositoryFacade repositoryFacade;
 
     /**
      * Constructor
@@ -32,12 +34,13 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
      * @param securityTokenProvider A security token provider for sending responses with a DAT
      * @param responseSenderAgent The "senderAgent" which should show in automatic response messages
      */
-    public ResourceMessageHandler(ResourceStatusHandler resourceStatusHandler, InfrastructureComponent infrastructureComponent, SecurityTokenProvider securityTokenProvider, URI responseSenderAgent)
+    public ResourceMessageHandler(ResourceStatusHandler resourceStatusHandler, InfrastructureComponent infrastructureComponent, SecurityTokenProvider securityTokenProvider, RepositoryFacade repositoryFacade, URI responseSenderAgent)
     {
         this.resourceStatusHandler = resourceStatusHandler;
         this.infrastructureComponent = infrastructureComponent;
         this.addMapValidationStrategy(new SameOriginResourceMapValidationStrategy());
         this.securityTokenProvider = securityTokenProvider;
+        this.repositoryFacade = repositoryFacade;
         this.responseSenderAgent = responseSenderAgent;
     }
 
@@ -56,6 +59,28 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
             if (msg instanceof ResourceUpdateMessage) {
                 //ResourceUpdateMessages have the affected Resource in their payload
                 if (msg.getAffectedResource() != null && messageAndPayload.getPayload().isPresent()) {
+
+                    //TODO: Check if method is POST and, if so, if Resource already exists
+                    if(messageAndPayload.getMessage().getProperties() != null) {
+                        //POST is not idempotent. Making sure that, in case POST is used, the connector does not exist yet
+                        if (messageAndPayload.getMessage().getProperties().containsKey("https://w3id.org/idsa/core/method")) {
+                            String method = messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/method").toString().replace("\"", "").replace("^^http://www.w3.org/2001/XMLSchema#string", "").toLowerCase();
+                            if (method.equals("post")) {
+                                try {
+                                    //Check if resource exists yet
+                                    if (resourceStatusHandler.resourceExists(((ResourceUpdateMessage) messageAndPayload.getMessage()).getAffectedResource())
+                                            || resourceStatusHandler.resourceExists(ResourcePersistenceAndIndexing.tryGetRewrittenResourceUri(messageAndPayload.getMessage().getIssuerConnector(), ((ResourceUpdateMessage) messageAndPayload.getMessage()).getAffectedResource()))) {
+                                        throw new RejectMessageException(RejectionReason.TOO_MANY_RESULTS, new Exception("The resource you are trying to post already exists. To update it, use PUT instead."));
+                                    }
+                                }
+                                catch (RejectMessageException ignored)
+                                {
+                                    //RejectMessageException is thrown by ResourcePersistenceAndIndexing.tryGetRewrittenResourceUri, in case the resource does not exist
+                                    //This may very well happen here, particularly if the resources is posted correctly (i.e. didn't exist before)
+                                }
+                            }
+                        }
+                    }
                     rewrittenUri = resourceStatusHandler.updated(messageAndPayload.getPayload().get(), msg.getIssuerConnector());
                 } else {
                     //If no payload present, Resource cannot be updated

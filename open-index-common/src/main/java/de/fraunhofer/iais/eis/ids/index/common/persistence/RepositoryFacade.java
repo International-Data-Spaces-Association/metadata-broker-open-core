@@ -17,6 +17,7 @@ import org.apache.jena.update.Update;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -264,6 +265,22 @@ public class RepositoryFacade {
         }
         queryExecution.close();
         return result;
+    }
+
+    /**
+     * This function executes a select query and returns the result in TSV format
+     * @param query The select query to be executed
+     * @return Resulting binding as
+     */
+    public String selectQueryReturnTSV(String query)
+    {
+        RDFConnection connection = getNewReadOnlyConnectionToFuseki();
+        QueryExecution queryExecution = connection.query(query); //Careful. QueryExecutions MUST BE CLOSED or will cause a freeze, if >5 are left open!!!
+        ResultSet resultSet = queryExecution.execSelect();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ResultSetFormatter.outputAsTSV(outputStream, resultSet);
+        queryExecution.close();
+        return outputStream.toString();
     }
 
     /**

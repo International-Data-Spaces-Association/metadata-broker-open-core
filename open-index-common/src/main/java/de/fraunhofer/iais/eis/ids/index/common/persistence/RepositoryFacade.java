@@ -69,10 +69,20 @@ public class RepositoryFacade {
 
 
     /**
+     * @deprecated This function returns a writable connection. Use the explicit getNewWritableConnection or getNewReadOnlyConnection instead
+     * @return Writable RDFConnection to the triplestore
+     */
+    @Deprecated
+    public RDFConnection getNewConnection()
+    {
+        return getNewWritableConnection();
+    }
+
+    /**
      * Utility function for fetching a connection, either to the in-memory repository or the (possibly remote) triple store
      * @return RDFConnection object, providing access to the repository
      */
-    public RDFConnection getNewConnection()
+    public RDFConnection getNewWritableConnection()
     {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
             return RDFConnectionFactory.connectFuseki(sparqlUrl);
@@ -83,6 +93,24 @@ public class RepositoryFacade {
             dataset = DatasetFactory.create();
         }
         return RDFConnectionFactory.connect(dataset);
+    }
+
+    /**
+     * This function makes use of the endpoint structure of Fuseki, which offers several endpoints per dataset
+     * This will not work with an in-memory setup
+     * @return RDFConnection object, which provides a connection to a read-only Fuseki query endpoint
+     */
+    public RDFConnection getNewReadOnlyConnectionToFuseki()
+    {
+        if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
+            //read only endpoint: host:port/dataset/sparql
+            return RDFConnectionFactory.connectFuseki(sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql");
+        }
+        else
+        {
+            logger.warn("Cannot return read-only connection to in-memory dataset. Connection will be writable!");
+            return RDFConnectionFactory.connect(dataset);
+        }
     }
 
     /**
@@ -102,7 +130,7 @@ public class RepositoryFacade {
      * @throws RejectMessageException if the named graph doesn't exist
      */
     public void addStatements(Model statements, String namedGraphUri) throws RejectMessageException {
-        RDFConnection connection = getNewConnection();
+        RDFConnection connection = getNewWritableConnection();
         connection.load(namedGraphUri, statements); //load = add/append, put = set
         if(!namedGraphUri.equals(adminGraphUri.toString()))
         {
@@ -120,7 +148,7 @@ public class RepositoryFacade {
      */
     public void replaceStatements(Model newStatements, String namedGraphUri) throws RejectMessageException {
         //Retrieve a connection
-        RDFConnection connection = getNewConnection();
+        RDFConnection connection = getNewWritableConnection();
 
         //Delete all previous statement in this named graph
         Update clearUpdate = new UpdateClear(namedGraphUri);
@@ -169,7 +197,7 @@ public class RepositoryFacade {
         }
 
         //Establish new connection
-        RDFConnection connection = getNewConnection();
+        RDFConnection connection = getNewWritableConnection();
 
         //Transform the named graph URI to a node
         Node namedGraphAsNode = ResourceFactory.createResource(namedGraphUri).asNode();
@@ -200,7 +228,7 @@ public class RepositoryFacade {
      */
     public boolean booleanQuery(String query)
     {
-        RDFConnection connection = getNewConnection();
+        RDFConnection connection = getNewReadOnlyConnectionToFuseki();
         boolean result = connection.queryAsk(query);
         connection.close();
         return result;
@@ -213,7 +241,7 @@ public class RepositoryFacade {
      */
     public Model constructQuery(String query)
     {
-        RDFConnection connection = getNewConnection();
+        RDFConnection connection = getNewReadOnlyConnectionToFuseki();
         Model m = connection.queryConstruct(query);
         connection.close();
         return m;
@@ -226,7 +254,7 @@ public class RepositoryFacade {
      */
     public ArrayList<QuerySolution> selectQuery(String query)
     {
-        RDFConnection connection = getNewConnection();
+        RDFConnection connection = getNewReadOnlyConnectionToFuseki();
         QueryExecution queryExecution = connection.query(query); //Careful. QueryExecutions MUST BE CLOSED or will cause a freeze, if >5 are left open!!!
         ResultSet resultSet = queryExecution.execSelect();
         ArrayList<QuerySolution> result = new ArrayList<>();
@@ -245,7 +273,7 @@ public class RepositoryFacade {
      */
     public void selectQuery(String query, OutputStream outputStream)
     {
-        RDFConnection connection = getNewConnection();
+        RDFConnection connection = getNewReadOnlyConnectionToFuseki();
         QueryExecution queryExecution = connection.query(query);
         ResultSet resultSet = queryExecution.execSelect();
         ResultSetFormatter.outputAsTSV(outputStream, resultSet);
@@ -259,7 +287,7 @@ public class RepositoryFacade {
      */
     public Model describeQuery(String query)
     {
-        RDFConnection connection = getNewConnection();
+        RDFConnection connection = getNewReadOnlyConnectionToFuseki();
         Model m = connection.queryDescribe(query);
         connection.close();
         return m;
@@ -372,7 +400,7 @@ public class RepositoryFacade {
             logger.info("Admin graph does not yet exist. Initializing it with one statement.");
             Model adminGraphModel = ModelFactory.createDefaultModel();
             adminGraphModel.addLiteral(ResourceFactory.createResource(adminGraphUri.toString()), ResourceFactory.createProperty(graphIsActiveUrl), false);
-            RDFConnection connection = getNewConnection();
+            RDFConnection connection = getNewWritableConnection();
             connection.put(adminGraphUri.toString(), adminGraphModel);
             connection.close();
             //It does not exist - create it (done by setting it to passive, as the fact that it is passive is stored within the admin graph)

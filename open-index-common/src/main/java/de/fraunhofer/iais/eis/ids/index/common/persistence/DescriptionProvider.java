@@ -1,6 +1,8 @@
 package de.fraunhofer.iais.eis.ids.index.common.persistence;
 
+import de.fraunhofer.iais.eis.Broker;
 import de.fraunhofer.iais.eis.InfrastructureComponent;
+import de.fraunhofer.iais.eis.ParIS;
 import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import org.apache.jena.query.QuerySolution;
@@ -81,7 +83,18 @@ public class DescriptionProvider {
         {
             logger.info("Catalog has been requested (with depth: " + depth + "): " + requestedElement);
             atRoot = true;
-            queryString.append("CONSTRUCT { <").append(catalogUri).append("> a ids:ConnectorCatalog ; ids:listedConnector ?s0 . ?s0 ?p0 ?o0 .");
+            if(selfDescription instanceof ParIS)
+            {
+                queryString.append("CONSTRUCT { <").append(catalogUri).append("> a ids:ParticipantCatalog ; ids:member ?s0 . ?s0 ?p0 ?o0 .");
+            }
+            else if(selfDescription instanceof Broker)
+            {
+                queryString.append("CONSTRUCT { <").append(catalogUri).append("> a ids:ConnectorCatalog ; ids:listedConnector ?s0 . ?s0 ?p0 ?o0 .");
+            }
+            else
+            {
+                throw new RuntimeException("Could not determine which catalog type should be returned.");
+            }
         }
         else
         {
@@ -108,9 +121,13 @@ public class DescriptionProvider {
 
         else
         {
-            //First ?s0 ?p0 ?o0 IS in optional block. If catalog is empty, no error should be thrown
-            //At this stage, the ontology class hierarchy is not respected in queries. Therefore, we will list all Connector types
-            queryString.append("GRAPH ?g { OPTIONAL { ?s0 ?p0 ?o0 . ?s0 a ?s0type . FILTER( ?s0type IN ( ids:BaseConnector, ids:TrustedConnector, ids:Connector ) ) . ");
+            if(selfDescription instanceof Broker)
+                //First ?s0 ?p0 ?o0 IS in optional block. If catalog is empty, no error should be thrown
+                //At this stage, the ontology class hierarchy is not respected in queries. Therefore, we will list all Connector types
+                queryString.append("GRAPH ?g { OPTIONAL { ?s0 ?p0 ?o0 . ?s0 a ?s0type . FILTER( ?s0type IN ( ids:BaseConnector, ids:TrustedConnector, ids:Connector ) ) . ");
+            else
+                //We're a ParIS
+                queryString.append("GRAPH ?g { OPTIONAL { ?s0 ?p0 ?o0 . ?s0 a ?s0type . FILTER( ?s0type = ids:Participant ) . ");
         }
 
         for(int i = 0; i < depth; i++)

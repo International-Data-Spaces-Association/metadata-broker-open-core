@@ -29,4 +29,12 @@ public interface ResourceStatusHandler {
          * @throws RejectMessageException may be thrown, if the update is not permitted, e.g. because the resource of an inactive connector is modified, or if an internal error occurs
          */
         URI updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException;
+
+        /**
+         * Function to check whether a resource with a given URI exists
+         * @param resourceUri The resource URI to be checked for existence
+         * @return true, if a resource with this URI exists
+         * @throws RejectMessageException if the information cannot be retrieved
+         */
+        boolean resourceExists(URI resourceUri) throws RejectMessageException;
 }

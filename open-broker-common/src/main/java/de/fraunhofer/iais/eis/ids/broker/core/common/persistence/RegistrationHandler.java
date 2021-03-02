@@ -10,6 +10,7 @@ import de.fraunhofer.iais.eis.ids.connector.commons.broker.InfrastructureCompone
 import de.fraunhofer.iais.eis.ids.connector.commons.broker.SameOriginInfrastructureComponentMapValidationStrategy;
 import de.fraunhofer.iais.eis.ids.connector.commons.broker.map.InfrastructureComponentMAP;
 import de.fraunhofer.iais.eis.ids.connector.commons.messagevalidation.ValidatingMessageHandler;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.RepositoryFacade;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,7 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
     private final InfrastructureComponentStatusHandler infrastructureComponentStatusHandler;
     private final SecurityTokenProvider securityTokenProvider;
     private final URI responseSenderUri;
+    private final RepositoryFacade repositoryFacade;
 
     Logger logger = LoggerFactory.getLogger(RegistrationHandler.class);
 
@@ -40,11 +42,13 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
     public RegistrationHandler(InfrastructureComponentStatusHandler infrastructureComponentStatusHandler,
                                InfrastructureComponent infrastructureComponent,
                                SecurityTokenProvider securityTokenProvider,
+                               RepositoryFacade repositoryFacade,
                                URI responseSenderUri)
     {
         this.infrastructureComponent = infrastructureComponent;
         this.infrastructureComponentStatusHandler = infrastructureComponentStatusHandler;
         this.securityTokenProvider = securityTokenProvider;
+        this.repositoryFacade = repositoryFacade;
         this.responseSenderUri = responseSenderUri;
 
         addMapValidationStrategy(new SameOriginInfrastructureComponentMapValidationStrategy());
@@ -68,6 +72,22 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
             if (msg instanceof ConnectorUpdateMessage) {
                 //Updating existing Connector or registering new Connector
                 if(messageAndPayload.getPayload().isPresent()) {
+                    if(messageAndPayload.getMessage().getProperties() != null) {
+                        //POST is not idempotent. Making sure that, in case POST is used, the connector does not exist yet
+                        if (messageAndPayload.getMessage().getProperties().containsKey("https://w3id.org/idsa/core/method")) {
+                            String method = messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/method").toString().replace("\"", "").replace("^^http://www.w3.org/2001/XMLSchema#string", "").toLowerCase();
+                            if(method.equals("post"))
+                            {
+                                //Check if either the provided URL or the rewritten provided URL already exists (and is non-passivated) as graph in our triple store
+                                if(repositoryFacade.graphIsActive(SelfDescriptionPersistenceAndIndexing.rewriteConnectorUri(((ConnectorUpdateMessage) messageAndPayload.getMessage()).getAffectedConnector()).toString())
+                                || repositoryFacade.graphIsActive(((ConnectorUpdateMessage) messageAndPayload.getMessage()).getAffectedConnector().toString()))
+                                {
+                                    //TOO_MANY_RESULTS is not exactly an ideal term... No better choice available though
+                                    throw new RejectMessageException(RejectionReason.TOO_MANY_RESULTS, new Exception("The connector you are posting already exists. Use PUT instead to overwrite it."));
+                                }
+                            }
+                        }
+                    }
                     //Rewrite URL to match our REST scheme
                     rewrittenUri = infrastructureComponentStatusHandler.updated(messageAndPayload.getPayload().get());
                 }

@@ -322,8 +322,15 @@ public class RepositoryFacade {
         //CONSTRUCT so that we get a graph as result
         queryStringBuilder.append("CONSTRUCT { ?s ?p ?o . } ");
 
+        //If no graphs exist, return an empty model
+        List<String> activeGraphs = getActiveGraphs();
+        if(activeGraphs.isEmpty())
+        {
+            return ModelFactory.createDefaultModel();
+        }
+
         //Only active graphs
-        getActiveGraphs().forEach(graphName -> queryStringBuilder.append("FROM NAMED <").append(graphName).append("> "));
+        activeGraphs.forEach(graphName -> queryStringBuilder.append("FROM NAMED <").append(graphName).append("> "));
 
         //Get all statements from these graphs. The GRAPH ?g part is required for any results to be returned
         queryStringBuilder.append(" WHERE GRAPH ?g { ?s ?p ?o . } ");
@@ -429,6 +436,9 @@ public class RepositoryFacade {
 
     /**
      * Utility function to return a list of all active (i.e. non-deleted, non-passivated) named graphs
+     * Note: This function is often used in the "FROM NAMED" parts in SPARQL queries. In case no active graph exists,
+     * one needs to be careful, as having no "FROM NAMED" statement means that all named graphs will be used, including our passivated graphs
+     * Hence, special treatment is often required in case this list is empty!
      * @return List of all active (i.e. non-deleted, non-passivated) named graphs
      */
     public List<String> getActiveGraphs()

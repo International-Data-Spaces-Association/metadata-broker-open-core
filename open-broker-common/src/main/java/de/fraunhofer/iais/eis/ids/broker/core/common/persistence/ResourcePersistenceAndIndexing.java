@@ -19,6 +19,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * This class takes care of persisting and indexing any changes to resources that are announced to the broker
@@ -96,10 +97,13 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     @Override
     public boolean resourceExists(URI resourceUri) throws RejectMessageException {
         try {
+            List<String> activeGraphs = repositoryFacade.getActiveGraphs();
+            if(activeGraphs.isEmpty()) return false;
+
             StringBuilder queryString = new StringBuilder();
             queryString.append("PREFIX ids: <https://w3id.org/idsa/core/> ");
             queryString.append("ASK ");
-            repositoryFacade.getActiveGraphs().forEach(graphName -> queryString.append("FROM NAMED <").append(graphName).append("> "));
+            activeGraphs.forEach(graphName -> queryString.append("FROM NAMED <").append(graphName).append("> "));
             queryString.append("WHERE { BIND(<").append(resourceUri.toString()).append("> AS ?res) . ");
             queryString.append("?res a ids:Resource ; ");
             queryString.append("?p ?o . }");

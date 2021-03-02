@@ -86,8 +86,14 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
             logger.info("Refreshing index.");
             indexing.recreateIndex("registrations");
 
+            List<String> activeGraphs = repositoryFacade.getActiveGraphs();
+            if(activeGraphs.isEmpty()) //Nothing to index. Return here to make sure that in case no active graphs exist, inactive ones are also ignored
+            {
+                return;
+            }
+
             //Iterate over all active graphs, i.e. non-passivated and non-deleted graphs
-            for (String graph : repositoryFacade.getActiveGraphs()) {
+            for (String graph : activeGraphs) {
                 //Add each connector to the index
                 logger.info("Adding connector " + graph + " to index.");
                 indexing.add(repositoryFacade.getConnectorFromTripleStore(new URI(graph)));

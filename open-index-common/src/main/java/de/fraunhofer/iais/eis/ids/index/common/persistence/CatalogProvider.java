@@ -2,11 +2,14 @@ package de.fraunhofer.iais.eis.ids.index.common.persistence;
 
 import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.ResourceCatalog;
+import de.fraunhofer.iais.eis.ResourceCatalogBuilder;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 
 /**
@@ -38,6 +41,12 @@ public class CatalogProvider {
     public ResourceCatalog generateCatalogFromTripleStore() throws RejectMessageException {
         //TODO: only offer so far, not request
         try {
+            List<String> activeGraphs = repositoryFacade.getActiveGraphs();
+            if(activeGraphs.isEmpty())
+            {
+                //Make sure that nothing is returned in case of all graphs being inactive
+                return new ResourceCatalogBuilder().build();
+            }
             //Iteratively build up this monstrous query string
             StringBuilder queryString = new StringBuilder();
             queryString.append("PREFIX ids: <https://w3id.org/idsa/core/> ");
@@ -48,7 +57,7 @@ public class CatalogProvider {
             queryString.append("CONSTRUCT { <").append(catalogUri).append("> a ids:ResourceCatalog . <").append(catalogUri).append("> ids:offeredResource ?resource . ?resource ?p ?o . ?o ?p2 ?o2 . ?o2 ?p3 ?o3 . ?o3 ?p4 ?o4 . ?o4 ?p5 ?o5 . ?o5 ?p6 ?o6 . ?o6 ?p7 ?o7 . ?o7 ?p8 ?o8 . ?o8 ?p9 ?o9 . ?o9 ?p10 ?o10 . ?o10 ?p11 ?o11 . ?o11 ?p12 ?o12 . } ");
 
             //Only include active graphs. Passivated graphs (or deleted graphs) need to be excluded from catalog
-            repositoryFacade.getActiveGraphs().forEach(graphName -> queryString.append("FROM NAMED <").append(graphName).append("> "));
+            activeGraphs.forEach(graphName -> queryString.append("FROM NAMED <").append(graphName).append("> "));
 
             //The WHERE part corresponding to the CONSTRUCT section
             //Note that even the resource is optional. This prevents an error in case no resource is known yet

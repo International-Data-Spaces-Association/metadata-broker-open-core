@@ -204,7 +204,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
             for (ConnectorEndpoint connectorEndpoint : resource.getResourceEndpoint()) {
                 URI endpointUri = new URI(resourceUri + "/" + connectorEndpoint.getId().hashCode());
                 if (connectorEndpoint.getEndpointArtifact() != null) {
-                    currentString = doReplace(currentString, connectorEndpoint.getEndpointArtifact().getId(), new URI(connectorEndpoint.getEndpointArtifact().getId() + "/" + connectorEndpoint.getEndpointArtifact().getId().hashCode()));
+                    currentString = doReplace(currentString, connectorEndpoint.getEndpointArtifact().getId(), new URI(endpointUri + "/" + connectorEndpoint.getEndpointArtifact().getId().hashCode()));
                 }
 
                 currentString = doReplace(currentString, connectorEndpoint.getId(), endpointUri);

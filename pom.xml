@@ -7,7 +7,7 @@
     <groupId>de.fraunhofer.iais.eis.ids</groupId>
     <artifactId>broker-open-core</artifactId>
     <packaging>pom</packaging>
-    <version>4.0.2-SNAPSHOT</version>
+    <version>4.0.2</version>
     <modules>
         <module>open-index-common</module>
         <module>open-broker-common</module>

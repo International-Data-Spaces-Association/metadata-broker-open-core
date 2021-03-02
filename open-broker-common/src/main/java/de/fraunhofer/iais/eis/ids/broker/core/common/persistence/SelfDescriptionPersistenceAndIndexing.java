@@ -86,8 +86,14 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
             logger.info("Refreshing index.");
             indexing.recreateIndex("registrations");
 
+            List<String> activeGraphs = repositoryFacade.getActiveGraphs();
+            if(activeGraphs.isEmpty()) //Nothing to index. Return here to make sure that in case no active graphs exist, inactive ones are also ignored
+            {
+                return;
+            }
+
             //Iterate over all active graphs, i.e. non-passivated and non-deleted graphs
-            for (String graph : repositoryFacade.getActiveGraphs()) {
+            for (String graph : activeGraphs) {
                 //Add each connector to the index
                 logger.info("Adding connector " + graph + " to index.");
                 indexing.add(repositoryFacade.getConnectorFromTripleStore(new URI(graph)));
@@ -198,7 +204,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
             for (ConnectorEndpoint connectorEndpoint : resource.getResourceEndpoint()) {
                 URI endpointUri = new URI(resourceUri + "/" + connectorEndpoint.getId().hashCode());
                 if (connectorEndpoint.getEndpointArtifact() != null) {
-                    currentString = doReplace(currentString, connectorEndpoint.getEndpointArtifact().getId(), new URI(connectorEndpoint.getEndpointArtifact().getId() + "/" + connectorEndpoint.getEndpointArtifact().getId().hashCode()));
+                    currentString = doReplace(currentString, connectorEndpoint.getEndpointArtifact().getId(), new URI(endpointUri + "/" + connectorEndpoint.getEndpointArtifact().getId().hashCode()));
                 }
 
                 currentString = doReplace(currentString, connectorEndpoint.getId(), endpointUri);

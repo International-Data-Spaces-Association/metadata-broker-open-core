@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Class to provide IDS descriptions of known object, such as registered connectors, participants, a self description of the broker/ParIS itself or its catalog
@@ -109,7 +110,14 @@ public class DescriptionProvider {
 
         //Close CONSTRUCT brackets
         queryString.append(" } ");
-        repositoryFacade.getActiveGraphs().forEach(graphName -> queryString.append("FROM NAMED <").append(graphName).append("> "));
+        List<String> activeGraphs = repositoryFacade.getActiveGraphs();
+        activeGraphs.forEach(graphName -> queryString.append("FROM NAMED <").append(graphName).append("> "));
+        if(activeGraphs.isEmpty())
+        {
+            //Make sure that there is a FROM statement. If there is no FROM statement, it is assumed that ALL graphs should be used
+            //This will result in an empty result set, except for the few triples we have constructed above
+            queryString.append("FROM NAMED <http://dummy.org/non-existing-graph> ");
+        }
         queryString.append("WHERE { ");
 
         if(!atRoot)
@@ -165,14 +173,19 @@ public class DescriptionProvider {
             //TODO: More specific subclasses
             return "https://w3id.org/idsa/core/Connector";
         }
-        if(requestedElement.equals(catalogUri))
+        if(requestedElement.equals(catalogUri) || (requestedElement.toString() + "/").equals(catalogUri.toString()))
         {
             //TODO: ConnectorCatalog or ResourceCatalog?
             return "https://w3id.org/idsa/core/Catalog";
         }
         StringBuilder queryString = new StringBuilder();
         queryString.append("SELECT ?type ");
-        for(String activeGraph : repositoryFacade.getActiveGraphs())
+        List<String> activeGraphs = repositoryFacade.getActiveGraphs();
+        if(activeGraphs.isEmpty())
+        {
+            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("Could not retrieve type of " + requestedElement));
+        }
+        for(String activeGraph : activeGraphs)
         {
             queryString.append("FROM NAMED <").append(activeGraph).append("> ");
         }

@@ -32,6 +32,18 @@
         </plugins>
     </reporting>
 
+    <build>
+        <!-- Including the LICENSE file -->
+        <resources>
+            <resource>
+                <directory>.</directory>
+                <includes>
+                    <include>LICENSE</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+
     <repositories>
         <repository>
             <id>eis-public-repo</id>

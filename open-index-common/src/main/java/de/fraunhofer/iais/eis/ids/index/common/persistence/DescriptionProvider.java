@@ -173,7 +173,7 @@ public class DescriptionProvider {
             //TODO: More specific subclasses
             return "https://w3id.org/idsa/core/Connector";
         }
-        if(requestedElement.equals(catalogUri))
+        if(requestedElement.equals(catalogUri) || (requestedElement.toString() + "/").equals(catalogUri.toString()))
         {
             //TODO: ConnectorCatalog or ResourceCatalog?
             return "https://w3id.org/idsa/core/Catalog";

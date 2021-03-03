@@ -72,7 +72,7 @@ public class Main extends MainTemplate implements ComponentInteractorProvider {
         elasticsearchPort = Integer.parseInt(Objects.requireNonNull(env.getProperty("elasticsearch.port")));
         keystorePassword = env.getProperty("keystore.password");
         keystoreAlias = env.getProperty("keystore.alias");
-        componentIdsId = env.getProperty("component.idsid");
+//        componentIdsId = env.getProperty("component.idsid");
         dapsUrl = env.getProperty("daps.url");
         trustAllCerts = Boolean.parseBoolean(env.getProperty("ssl.trustAllCerts"));
         ignoreHostName = Boolean.parseBoolean(env.getProperty("ssl.ignoreHostName"));

@@ -33,7 +33,7 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
     public String elasticsearchHostname;
     public int elasticsearchPort;
     public String keystorePassword, keystoreAlias;
-    public String componentIdsId;
+//    public String componentIdsId;
     public String dapsUrl;
     public boolean trustAllCerts, ignoreHostName;
 
@@ -64,7 +64,6 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
                 getClass().getClassLoader().getResourceAsStream("isstbroker-keystore.jks"),
                 keystorePassword,
                 keystoreAlias,
-                componentIdsId,
                 dapsUrl,
                 trustAllCerts,
                 ignoreHostName,

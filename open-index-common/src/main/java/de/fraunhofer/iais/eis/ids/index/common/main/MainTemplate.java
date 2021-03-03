@@ -33,7 +33,7 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
     public String elasticsearchHostname;
     public int elasticsearchPort;
     public String keystorePassword, keystoreAlias;
-    public String componentIdsId;
+//    public String componentIdsId;
     public String dapsUrl;
     public boolean trustAllCerts, ignoreHostName;
 

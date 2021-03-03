@@ -64,7 +64,6 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
                 getClass().getClassLoader().getResourceAsStream("isstbroker-keystore.jks"),
                 keystorePassword,
                 keystoreAlias,
-                componentIdsId,
                 dapsUrl,
                 trustAllCerts,
                 ignoreHostName,

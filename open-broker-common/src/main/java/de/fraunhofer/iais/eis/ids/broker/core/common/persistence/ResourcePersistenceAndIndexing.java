@@ -11,6 +11,8 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 import java.io.IOException;
@@ -31,6 +33,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     private Indexing indexing = new NullIndexing();
 
     private final URI componentCatalogUri;
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
 
     /**
@@ -104,9 +108,9 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             queryString.append("PREFIX ids: <https://w3id.org/idsa/core/> ");
             queryString.append("ASK ");
             activeGraphs.forEach(graphName -> queryString.append("FROM NAMED <").append(graphName).append("> "));
-            queryString.append("WHERE { BIND(<").append(resourceUri.toString()).append("> AS ?res) . ");
+            queryString.append("WHERE { GRAPH ?g { BIND(<").append(resourceUri.toString()).append("> AS ?res) . ");
             queryString.append("?res a ids:Resource ; ");
-            queryString.append("?p ?o . }");
+            queryString.append("?p ?o . } }");
             return repositoryFacade.booleanQuery(queryString.toString());
         }
         catch (Exception e)
@@ -127,7 +131,9 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     public URI updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException {
         URI catalogUri;
         try {
-            connectorUri = SelfDescriptionPersistenceAndIndexing.rewriteConnectorUri(connectorUri);
+            //Check if the connectorURI is rewritten already. If not, rewrite now
+            if(!connectorUri.toString().startsWith(componentCatalogUri.toString()))
+                connectorUri = SelfDescriptionPersistenceAndIndexing.rewriteConnectorUri(connectorUri);
             catalogUri = getConnectorCatalog(connectorUri);
 
             //Rewrite resource
@@ -146,8 +152,11 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             }
         }
 
+        logger.info("Rewrote resource. New URI: " + resource.getId().toString());
+
         //Try to remove the resource from Triple Store if it exists, so that it is updated properly.
         if (resourceExists(resource.getId())) {
+            logger.info("Resource already exists. Removing");
             removeFromTriplestore(resource.getId(), connectorUri);
         }
 

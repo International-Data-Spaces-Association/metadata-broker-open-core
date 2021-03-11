@@ -141,6 +141,11 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      * @throws URISyntaxException, if malformed URIs are encountered
      */
     static String rewriteResource(String currentString, Resource resource, URI catalogUri) throws URISyntaxException {
+        //Was the resource rewritten already?
+        if(resource.getId().toString().startsWith(componentCatalogUri.toString()))
+        {
+            return currentString;
+        }
         URI resourceUri = new URI(catalogUri + "/" + resource.getId().hashCode());
 
         //First big block is about contracts attached to a resource

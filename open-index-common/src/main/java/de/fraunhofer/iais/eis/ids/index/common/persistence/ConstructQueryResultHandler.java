@@ -57,6 +57,7 @@ public class ConstructQueryResultHandler {
         }
         catch (IOException e)
         {
+            logger.error("Parsing this connector caused an IOException: " + graphToString(result));
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
     }

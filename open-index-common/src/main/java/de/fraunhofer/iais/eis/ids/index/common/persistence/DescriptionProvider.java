@@ -75,6 +75,7 @@ public class DescriptionProvider {
         }
         StringBuilder queryString = new StringBuilder();
         queryString.append("PREFIX ids: <https://w3id.org/idsa/core/> \n");
+        queryString.append("PREFIX owl: <http://www.w3.org/2002/07/owl#> \n"); //sameAs statements
 
         //Check if we are at the root. This top path, which is the catalog URI to the outside, is not persisted as such in the triple store, but generated upon request
         //If the root URI has been requested, we need to create specific SPARQL CONSTRUCT queries to serve a connector catalog
@@ -120,14 +121,17 @@ public class DescriptionProvider {
         }
         queryString.append("WHERE { ");
 
-        if(!atRoot)
+        if(!atRoot) //Specific element was requested, which we can retrieve "as-is" (unlike the catalog, which we need to generate on the fly)
         {
             //first ?s0 ?p0 ?o0 NOT in optional block. If unknown resource is requested, error should be thrown
-            queryString.append("BIND(<").append(requestedElement.toString()).append("> AS ?s0) . GRAPH ?g { ?s0 ?p0 ?o0 . ");
+            queryString.append("BIND(<").append(requestedElement.toString())
+                    //Also include owl:sameAs equivalent objects
+                    .append("> AS ?requestedElement) . GRAPH ?g {  { ?requestedElement ?p0 ?o0 . } UNION { ?s owl:sameAs ?requestedElement ; ?p0 ?o0 . } ")
+                    .append(" BIND ( IF (BOUND(?s), ?s, ?requestedElement) AS ?s0) ."); //Make sure that the rewritten URI is used as s0
         }
 
 
-        else
+        else //Need to construct a catalog, so we query for all active connectors / participants we know
         {
             if(selfDescription instanceof Broker)
                 //First ?s0 ?p0 ?o0 IS in optional block. If catalog is empty, no error should be thrown
@@ -179,6 +183,7 @@ public class DescriptionProvider {
             return "https://w3id.org/idsa/core/Catalog";
         }
         StringBuilder queryString = new StringBuilder();
+        queryString.append("PREFIX owl: <http://www.w3.org/2002/07/owl#> \n"); //sameAs statements
         queryString.append("SELECT ?type ");
         List<String> activeGraphs = repositoryFacade.getActiveGraphs();
         if(activeGraphs.isEmpty())
@@ -189,7 +194,7 @@ public class DescriptionProvider {
         {
             queryString.append("FROM NAMED <").append(activeGraph).append("> ");
         }
-        queryString.append(" WHERE { GRAPH ?g { ").append("BIND(<").append(requestedElement.toString()).append("> AS ?s) . ?s a ?type . } } ");
+        queryString.append(" WHERE { GRAPH ?g { ").append("BIND(<").append(requestedElement.toString()).append("> AS ?s) . { ?s a ?type . } UNION { ?s0 owl:sameAs ?s . ?s0 a ?type . } } } ");
         ArrayList<QuerySolution> result = repositoryFacade.selectQuery(queryString.toString());
         if(result == null || result.isEmpty())
         {

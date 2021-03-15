@@ -102,8 +102,7 @@ public class AppConfig extends AppConfigTemplate {
         component.addMessageHandler(resourceHandler, RequestType.INFRASTRUCTURE);
 
         if (dapsValidateIncoming) {
-            component.setSecurityTokenVerifier(new DapsSecurityTokenVerifier(new JWKSFromIssuer(trustedJwksHosts),
-                    (claims) -> {/* don't check the claims for the moment */}));
+            component.setSecurityTokenVerifier(new DapsSecurityTokenVerifier(new JWKSFromIssuer(trustedJwksHosts)));
         }
 
         //Wrap everything up in a single object and return

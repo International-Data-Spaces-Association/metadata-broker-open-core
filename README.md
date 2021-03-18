@@ -26,22 +26,24 @@ Security is currently supported in terms of TLS via a reverse proxy.
 
 The steps for bringing up a Broker instance depend on the host where the Broker should be deployed. The easiest option is to run the instance on localhost, which is described in the following. We assume that the Docker command-line tools are installed on your system.
 
-1. Prepare the SSL certificate: On your host system, create a directory /etc/idscert/localhost (Linux), C:\etc\idscert\localhost (Windows) and put two files into this directory:
+Build the Docker Images, Prepare and Check the Docker Compose File:
+
+1. __Prepare the SSL certificate:__ On your host system, create a directory /etc/idscert/localhost (Linux), C:\etc\idscert\localhost (Windows) and put two files into this directory:
     * server.crt: an x509 certificate, either self-signed or from an official CA
     * server.key: the private key for the certificate
 
     In the case that you received Keys from our partner Institutes or us, that are stored in a .pem format a conversion to .crt and .key is required for the usage in the reverse proxy.
 
     openssl x509 -in example_cert.pem -out server.crt openssl rsa -in example_key.pem -out server.key mkdir cert mv server.crt cert/ mv server.key cert/
+2. __Build the Docker Images, Prepare and Check the Docker Compose File__:
+    
+    2.1 If you want to use a docker-compose file that uses locally build images, please execute following steps, otherwise continue with 2.2: 
+    - You can find a build script for the Images in the folder docker (buildImages.sh). 
+    - You need to have maven installed for executing the script.
+    
+    2.2
+    After he images are available, you can alter the docker-compose files. 
 
-
-2. **Prepare and Check the Docker Compose File**
-
-     In some cases no changes are required, but the docker images in the compose files need to be present in the IDS docker registry. Hence,  you need to login to the docker registry first using your credentials:
-
-     `docker login app-store.ids.isst.fraunhofer.de:5000`
-
-    Please also check, that the volume of the reverse proxy contains your cert folder, and change it accordingly.
 
 3. __Run the services__: We provide a [docker-compose file for a localhost setup](docker/composefiles/broker-localhost/docker-compose.yml). Download the file, change
     to the directory where it is located and run ```docker-compose up```.   

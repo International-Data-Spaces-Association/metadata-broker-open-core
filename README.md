@@ -35,14 +35,15 @@ Build the Docker Images, Prepare and Check the Docker Compose File:
     In the case that you received Keys from our partner Institutes or us, that are stored in a .pem format a conversion to .crt and .key is required for the usage in the reverse proxy.
 
     openssl x509 -in example_cert.pem -out server.crt openssl rsa -in example_key.pem -out server.key mkdir cert mv server.crt cert/ mv server.key cert/
-2. __Build the Docker Images, Prepare and Check the Docker Compose File__:
+
+2. __Build the Docker Images, Prepare and Check the Docker Compose File__: Next, you can either build your customized docker containers as demonstrated in 2.1, or make use of docker images provided by us, see 2.2. 
     
-    2.1 If you want to use a docker-compose file that uses locally build images, please execute following steps, otherwise continue with 2.2: 
-    - You can find a build script for the Images in the folder docker (buildImages.sh). 
-    - You need to have maven installed for executing the script.
+    2.1 If you want to use a docker-compose file that uses locally built images, please execute following steps: 
+    - You can find a build script for the images in the docker directory: docker/buildImages.sh . 
+    - Note that you need to have Maven installed for executing the script.
     
     2.2
-    After he images are available, you can alter the docker-compose files. 
+    The ```docker-compose pull``` command can be used to download or update images provided by us reflecting the current state of this repository. If no local images are present, Docker will try this automatically on the first start, though it will not automatically update on subsequent starts. Note that this command needs to be executed in the same directory as the docker-compose.yml file, see step 3.
 
 
 3. __Run the services__: We provide a [docker-compose file for a localhost setup](docker/composefiles/broker-localhost/docker-compose.yml). Download the file, change
@@ -56,10 +57,8 @@ see [Broker API in SwaggerHub](https://app.swaggerhub.com/apis/idsa/IDS-Broker/)
 
 * [Maven](https://maven.apache.org/) - Dependency Management
 * [Spring Boot](https://projects.spring.io/spring-boot/) - Application Framework
-* [Apache Fuseki](https://jena.apache.org/documentation/fuseki2/) - RDF triple store for Connector Metadata
-* [RDF4J](http://rdf4j.org/) - Java Framework for RDF handling
-
+* [Apache Jena](https://jena.apache.org/documentation/) - Parsing and serializing RDF and Fuseki as triple store for meta data
 
 ## Contact (Fraunhofer IAIS)
 
-* [Sebastian Bader](https://gitlab.truzzt.com/sebbader/) [email](mailto:sebastian.bader@iais.fraunhofer.de)
+* [email](mailto:contact@ids.fraunhofer.de)

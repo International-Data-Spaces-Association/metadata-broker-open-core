@@ -21,7 +21,6 @@ Security is currently supported in terms of TLS via a reverse proxy.
 
 [docker](./docker): Docker and DockerCompose files to deploy the IDS Metadata Broker. 
 
-
 ## Running the Broker
 
 The steps for bringing up a Broker instance depend on the host where the Broker should be deployed. The easiest option is to run the instance on localhost, which is described in the following. We assume that the Docker command-line tools are installed on your system.
@@ -37,11 +36,9 @@ The steps for bringing up a Broker instance depend on the host where the Broker 
 
 2. **Prepare and Check the Docker Compose File**
 
-     In some cases no changes are required, but the docker images in the compose files need to be present in the IDS docker registry. Hence,  you need to login to the docker registry first using your credentials:
+     Make sure **Java 11** and **Maven 3.6.3** are installed in your local environment to build the docker image.
 
-     `docker login app-store.ids.isst.fraunhofer.de:5000`
-
-    Please also check, that the volume of the reverse proxy contains your cert folder, and change it accordingly.
+     Please also check, that the volume of the reverse proxy contains your cert folder, and change it accordingly.
 
 3. __Run the services__: We provide a [docker-compose file for a localhost setup](docker/composefiles/broker-localhost/docker-compose.yml). Download the file, change
     to the directory where it is located and run ```docker-compose up```.   

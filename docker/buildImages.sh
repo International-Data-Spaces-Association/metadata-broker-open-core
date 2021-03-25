@@ -6,7 +6,7 @@ dos2unix broker-core/*
 
 mvn -f ../ clean package
 cp ../broker-core/target/broker-core-*.jar broker-core/
-docker build broker-core/ -t ids.iais.fraunhofer.de:5000/ids/eis-broker
+docker build broker-core/ -t registry.gitlab.cc-asp.fraunhofer.de:4567/eis-ids/broker-open/core
 
 #cleanup
 rm -rf ../index-common/target
@@ -14,7 +14,7 @@ rm -rf ../broker-common/target
 
 
 # fuseki
-docker build fuseki/ -t ids.iais.fraunhofer.de:5000/ids/eis-broker-fuseki
+docker build fuseki/ -t registry.gitlab.cc-asp.fraunhofer.de:4567/eis-ids/broker-open/fuseki
 
 # reverseproxy
-docker build reverseproxy/ -t ids.iais.fraunhofer.de:5000/ids/eis-broker-reverseproxy
+docker build reverseproxy/ -t registry.gitlab.cc-asp.fraunhofer.de:4567/eis-ids/broker-open/reverseproxy

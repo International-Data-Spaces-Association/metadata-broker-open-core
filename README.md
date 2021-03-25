@@ -21,7 +21,6 @@ Security is currently supported in terms of TLS via a reverse proxy.
 
 [docker](./docker): Docker and DockerCompose files to deploy the IDS Metadata Broker. 
 
-
 ## Running the Broker
 
 The steps for bringing up a Broker instance depend on the host where the Broker should be deployed. The easiest option is to run the instance on localhost, which is described in the following. We assume that the Docker command-line tools are installed on your system.
@@ -41,6 +40,7 @@ Build the Docker Images, Prepare and Check the Docker Compose File:
     2.1 If you want to use a docker-compose file that uses locally built images, please execute following steps: 
     - You can find a build script for the images in the docker directory: docker/buildImages.sh . 
     - Note that you need to have Maven installed for executing the script.
+    Make sure **Java 11** and **Maven 3.6.3** or later are installed in your local environment to build the docker image.
     
     2.2
     The ```docker-compose pull``` command can be used to download or update images provided by us reflecting the current state of this repository. If no local images are present, Docker will try this automatically on the first start, though it will not automatically update on subsequent starts. Note that this command needs to be executed in the same directory as the docker-compose.yml file, see step 3.

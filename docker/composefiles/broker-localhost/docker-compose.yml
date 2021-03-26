@@ -1,35 +1,36 @@
-version: '2'
+version: '3'
 services:
   broker-reverseproxy:
-    image: ids.iais.fraunhofer.de:5000/ids/eis-broker-reverseproxy
+    image: registry.gitlab.cc-asp.fraunhofer.de:4567/eis-ids/broker-open/reverseproxy
     volumes:
-      #- /etc/idscert/localhost:/etc/cert/
-      - c:/etc/idscert/localhost:/etc/cert/
+      - /etc/idscert/localhost:/etc/cert/
+#      - c:/etc/idscert/localhost:/etc/cert/
     ports:
     - "443:443" # IDS-HTTP API
-    #- "80:80" # Search Web Frontend
+    - "80:80"
 
   broker-core:
-    image: ids.iais.fraunhofer.de:5000/ids/eis-broker
+    image: registry.gitlab.cc-asp.fraunhofer.de:4567/eis-ids/broker-open/core
     volumes:
-      #- /etc/idscert/localhost:/etc/cert/
-      - c:/etc/idscert/localhost:/etc/cert/
+      - /etc/idscert/localhost:/etc/cert/
+#      - c:/etc/idscert/localhost:/etc/cert/
     restart: always
     environment:
     - SPARQL_ENDPOINT=http://broker-fuseki:3030/connectorData
     - ELASTICSEARCH_HOSTNAME=broker-elasticsearch
-    - SHACL_VALIDATION=false
+    - SHACL_VALIDATION=true
     - DAPS_VALIDATE_INCOMING=true
+    - COMPONENT_URI=https://localhost/
+    - COMPONENT_CATALOGURI=https://localhost/connectors/
     expose:
     - "8080"
 
   broker-fuseki:
-    image: ids.iais.fraunhofer.de:5000/ids/eis-broker-fuseki
+    image: registry.gitlab.cc-asp.fraunhofer.de:4567/eis-ids/broker-open/fuseki
     volumes:
       - broker-fuseki:/fuseki
     expose:
     - "3030"
-
 
 volumes:
     broker-fuseki:

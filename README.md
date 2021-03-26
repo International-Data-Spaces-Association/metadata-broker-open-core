@@ -21,12 +21,13 @@ Security is currently supported in terms of TLS via a reverse proxy.
 
 [docker](./docker): Docker and DockerCompose files to deploy the IDS Metadata Broker. 
 
-
 ## Running the Broker
 
 The steps for bringing up a Broker instance depend on the host where the Broker should be deployed. The easiest option is to run the instance on localhost, which is described in the following. We assume that the Docker command-line tools are installed on your system.
 
-1. Prepare the SSL certificate: On your host system, create a directory /etc/idscert/localhost (Linux), C:\etc\idscert\localhost (Windows) and put two files into this directory:
+Build the Docker Images, Prepare and Check the Docker Compose File:
+
+1. __Prepare the SSL certificate:__ On your host system, create a directory /etc/idscert/localhost (Linux), C:\etc\idscert\localhost (Windows) and put two files into this directory:
     * server.crt: an x509 certificate, either self-signed or from an official CA
     * server.key: the private key for the certificate
 
@@ -34,14 +35,16 @@ The steps for bringing up a Broker instance depend on the host where the Broker 
 
     openssl x509 -in example_cert.pem -out server.crt openssl rsa -in example_key.pem -out server.key mkdir cert mv server.crt cert/ mv server.key cert/
 
+2. __Build the Docker Images, Prepare and Check the Docker Compose File__: Next, you can either build your customized docker containers as demonstrated in 2.1, or make use of docker images provided by us, see 2.2. 
+    
+    2.1 If you want to use a docker-compose file that uses locally built images, please execute following steps: 
+    - You can find a build script for the images in the docker directory: docker/buildImages.sh . 
+    - Note that you need to have Maven installed for executing the script.
+    Make sure **Java 11** and **Maven 3.6.3** or later are installed in your local environment to build the docker image.
+    
+    2.2
+    The ```docker-compose pull``` command can be used to download or update images provided by us reflecting the current state of this repository. If no local images are present, Docker will try this automatically on the first start, though it will not automatically update on subsequent starts. Note that this command needs to be executed in the same directory as the docker-compose.yml file, see step 3.
 
-2. **Prepare and Check the Docker Compose File**
-
-     In some cases no changes are required, but the docker images in the compose files need to be present in the IDS docker registry. Hence,  you need to login to the docker registry first using your credentials:
-
-     `docker login app-store.ids.isst.fraunhofer.de:5000`
-
-    Please also check, that the volume of the reverse proxy contains your cert folder, and change it accordingly.
 
 3. __Run the services__: We provide a [docker-compose file for a localhost setup](docker/composefiles/broker-localhost/docker-compose.yml). Download the file, change
     to the directory where it is located and run ```docker-compose up```.   
@@ -54,10 +57,8 @@ see [Broker API in SwaggerHub](https://app.swaggerhub.com/apis/idsa/IDS-Broker/)
 
 * [Maven](https://maven.apache.org/) - Dependency Management
 * [Spring Boot](https://projects.spring.io/spring-boot/) - Application Framework
-* [Apache Fuseki](https://jena.apache.org/documentation/fuseki2/) - RDF triple store for Connector Metadata
-* [RDF4J](http://rdf4j.org/) - Java Framework for RDF handling
-
+* [Apache Jena](https://jena.apache.org/documentation/) - Parsing and serializing RDF and Fuseki as triple store for meta data
 
 ## Contact (Fraunhofer IAIS)
 
-* [Sebastian Bader](https://gitlab.truzzt.com/sebbader/) [email](mailto:sebastian.bader@iais.fraunhofer.de)
+* [email](mailto:contact@ids.fraunhofer.de)

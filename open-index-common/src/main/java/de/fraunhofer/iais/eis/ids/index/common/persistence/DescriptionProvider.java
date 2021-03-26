@@ -5,9 +5,11 @@ import de.fraunhofer.iais.eis.InfrastructureComponent;
 import de.fraunhofer.iais.eis.ParIS;
 import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
+import org.apache.jena.query.ParameterizedSparqlString;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
+import org.apache.jena.sparql.ARQException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,9 +126,12 @@ public class DescriptionProvider {
         if(!atRoot) //Specific element was requested, which we can retrieve "as-is" (unlike the catalog, which we need to generate on the fly)
         {
             //first ?s0 ?p0 ?o0 NOT in optional block. If unknown resource is requested, error should be thrown
-            queryString.append("BIND(<").append(requestedElement.toString())
-                    //Also include owl:sameAs equivalent objects
-                    .append("> AS ?requestedElement) . GRAPH ?g {  { ?requestedElement ?p0 ?o0 . } UNION { ?s owl:sameAs ?requestedElement ; ?p0 ?o0 . } ")
+
+            //Do not explicitly bind the requestedElement. Instead, do this via Parameterised Sparql String for security
+            //queryString.append("BIND(<").append(requestedElement.toString())
+            //        //Also include owl:sameAs equivalent objects
+            //        .append("> AS ?requestedElement) .");
+            queryString.append(" GRAPH ?g {  { ?requestedElement ?p0 ?o0 . } UNION { ?s owl:sameAs ?requestedElement ; ?p0 ?o0 . } ")
                     .append(" BIND ( IF (BOUND(?s), ?s, ?requestedElement) AS ?s0) ."); //Make sure that the rewritten URI is used as s0
         }
 
@@ -157,7 +162,24 @@ public class DescriptionProvider {
         }
 
         //Fire construct query against triple store
-        Model result = repositoryFacade.constructQuery(queryString.toString());
+        Model result;
+        if(!atRoot)
+        {
+            try {
+                ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString(queryString.toString());
+                parameterizedSparqlString.setIri("requestedElement", requestedElement.toString());
+                result = repositoryFacade.constructQuery(parameterizedSparqlString.toString());
+            }
+            catch (ARQException e)
+            {
+                logger.warn("Potential SPARQL injection attack detected.", e);
+                throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+            }
+        }
+        else
+        {
+            result = repositoryFacade.constructQuery(queryString.toString());
+        }
 
         //Check if requested element exists in our persistence
         if(result.isEmpty())
@@ -194,20 +216,27 @@ public class DescriptionProvider {
         {
             queryString.append("FROM NAMED <").append(activeGraph).append("> ");
         }
-        queryString.append(" WHERE { GRAPH ?g { ").append("BIND(<").append(requestedElement.toString()).append("> AS ?s) . { ?s a ?type . } UNION { ?s0 owl:sameAs ?s . ?s0 a ?type . } } } ");
-        ArrayList<QuerySolution> result = repositoryFacade.selectQuery(queryString.toString());
-        if(result == null || result.isEmpty())
-        {
-            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("Could not retrieve type of " + requestedElement));
-        }
+        queryString.append(" WHERE { GRAPH ?g { { ?s a ?type . } UNION { ?s0 owl:sameAs ?s . ?s0 a ?type . } } } ");
+        ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString(queryString.toString());
+        parameterizedSparqlString.setIri("s", requestedElement.toString());
+        try {
+            ArrayList<QuerySolution> result = repositoryFacade.selectQuery(parameterizedSparqlString.toString());
+            if (result == null || result.isEmpty()) {
+                throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("Could not retrieve type of " + requestedElement));
+            }
 
-        if(result.size() > 1)
-        {
-            RejectMessageException e = new RejectMessageException(RejectionReason.TOO_MANY_RESULTS, new Exception("Could not determine type of " + requestedElement + " (multiple options)"));
-            logger.error("Could not determine the type of a requested element.", e);
-            throw e;
+            if (result.size() > 1) {
+                RejectMessageException e = new RejectMessageException(RejectionReason.TOO_MANY_RESULTS, new Exception("Could not determine type of " + requestedElement + " (multiple options)"));
+                logger.error("Could not determine the type of a requested element.", e);
+                throw e;
+            }
+            return result.get(0).get("type").toString();
         }
-        return result.get(0).get("type").toString();
+        catch (ARQException e)
+        {
+            logger.warn("Potential SPARQL injection attack detected.", e);
+            throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+        }
     }
 
 }

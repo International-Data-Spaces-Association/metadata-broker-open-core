@@ -10,6 +10,7 @@ import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
+import org.apache.jena.sparql.ARQException;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.engine.http.QueryExceptionHTTP;
 import org.apache.jena.sparql.modify.request.*;
@@ -351,19 +352,26 @@ public class RepositoryFacade {
             throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not known to this broker or unavailable."));
         }
         //Fire the query against our repository
-        String queryString = "CONSTRUCT { ?s ?p ?o . }" +
-                "WHERE { BIND(<" + connectorUri.toString() + "> AS ?g) GRAPH ?g { ?s ?p ?o . } } ";
-        Model result = constructQuery(queryString);
+        ParameterizedSparqlString queryString = new ParameterizedSparqlString("CONSTRUCT { ?s ?p ?o . }" +
+                "WHERE { GRAPH ?g { ?s ?p ?o . } } ");
+        queryString.setIri("g", connectorUri.toString());
+        try {
+            Model result = constructQuery(queryString.toString());
 
-        //Check if response is empty
-        if(result.isEmpty())
-        {
-            //Result is empty, throw exception. This will result in a RejectionMessage being sent
-            throw new RejectMessageException(RejectionReason.NOT_FOUND);
+            //Check if response is empty
+            if (result.isEmpty()) {
+                //Result is empty, throw exception. This will result in a RejectionMessage being sent
+                throw new RejectMessageException(RejectionReason.NOT_FOUND);
+            }
+
+            //Generate a connector object from the SPARQL result string (already containing the new resource!). This is a bit of a messy business
+            return ConstructQueryResultHandler.GraphQueryResultToConnector(result);
         }
-
-        //Generate a connector object from the SPARQL result string (already containing the new resource!). This is a bit of a messy business
-        return ConstructQueryResultHandler.GraphQueryResultToConnector(result);
+        catch (ARQException e)
+        {
+            logger.warn("Potential SPARQL injection attack detected.", e);
+            throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+        }
     }
 
     /**
@@ -373,24 +381,30 @@ public class RepositoryFacade {
      * @throws RejectMessageException if the participant is not known to the ParIS, or if the parsing fails
      */
     public Participant getParticipantFromTripleStore(URI participantUri) throws RejectMessageException {
-        if(!graphIsActive(participantUri.toString()))
-        {
+        if (!graphIsActive(participantUri.toString())) {
             throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + participantUri + " is not known to this broker or unavailable."));
         }
         //Fire the query against our repository
-        String queryString = "CONSTRUCT { ?s ?p ?o . }" +
-                "WHERE { BIND(<" + participantUri.toString() + "> AS ?g) GRAPH ?g { ?s ?p ?o . } } ";
-        Model result = constructQuery(queryString);
+        ParameterizedSparqlString queryString = new ParameterizedSparqlString("CONSTRUCT { ?s ?p ?o . }" +
+                "WHERE { GRAPH ?g { ?s ?p ?o . } } ");
+        queryString.setIri("g", participantUri.toString());
+        try {
+            Model result = constructQuery(queryString.toString());
 
-        //Check if response is empty
-        if(result.isEmpty())
-        {
-            //Result is empty, throw exception. This will result in a RejectionMessage being sent
-            throw new RejectMessageException(RejectionReason.NOT_FOUND);
+            //Check if response is empty
+            if (result.isEmpty()) {
+                //Result is empty, throw exception. This will result in a RejectionMessage being sent
+                throw new RejectMessageException(RejectionReason.NOT_FOUND);
+            }
+
+            //Generate a connector object from the SPARQL result string (already containing the new resource!). This is a bit of a messy business
+            return ConstructQueryResultHandler.GraphQueryResultToParticipant(result);
         }
-
-        //Generate a connector object from the SPARQL result string (already containing the new resource!). This is a bit of a messy business
-        return ConstructQueryResultHandler.GraphQueryResultToParticipant(result);
+        catch (ARQException e)
+        {
+            logger.warn("Potential SPARQL injection attack detected.", e);
+            throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+        }
     }
 
 
@@ -452,26 +466,41 @@ public class RepositoryFacade {
      * @param graphUrl The URL of the named graph (i.e. connector / participant URI) to be queried
      * @return true, if the corresponding graph is active, otherwise false
      */
-    public boolean graphIsActive(String graphUrl)
-    {
+    public boolean graphIsActive(String graphUrl) throws RejectMessageException {
         //Query admin graph, check if a triple satisfying "URI isActive true" exists
         logger.debug("Asking whether graph " + graphUrl + " is active.");
-        return booleanQuery("ASK FROM NAMED <" + adminGraphUri.toString() + "> WHERE { GRAPH ?g { <" + graphUrl + "> <" + graphIsActiveUrl + "> true . } } ");
+        ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString("ASK FROM NAMED <" + adminGraphUri.toString() + "> WHERE { GRAPH ?g { ?connector <" + graphIsActiveUrl + "> true . } } ");
+        parameterizedSparqlString.setIri("connector", graphUrl);
+        try {
+            return booleanQuery(parameterizedSparqlString.toString());
+        }
+        catch (ARQException e)
+        {
+            logger.info("Potential injection attack detected.", e);
+            throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+        }
     }
 
     /**
      * Internal function to remove all statements about a named graph from the admin graph. This is required when a graph changes states
      * @param graphUrl Graph URL which should be removed from the admin graph
      */
-    private void removeGraphFromAdminGraph(String graphUrl)
-    {
-        ArrayList<QuerySolution> selectSolution = selectQuery("SELECT ?s ?p ?o FROM NAMED <" + adminGraphUri.toString() + "> WHERE { BIND(<" + graphUrl + "> AS ?s) GRAPH <" + adminGraphUri.toString() + "> { ?s ?p ?o } }");
-        ArrayList<Statement> solutionAsStatements = new ArrayList<>();
-        for(QuerySolution solution : selectSolution)
-        {
-            solutionAsStatements.add(ResourceFactory.createStatement(solution.getResource("s"), ResourceFactory.createProperty(solution.get("p").toString()), solution.get("o")));
+    private void removeGraphFromAdminGraph(String graphUrl) throws RejectMessageException {
+        ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString("SELECT ?s ?p ?o FROM NAMED <" + adminGraphUri.toString() + "> WHERE { GRAPH <" + adminGraphUri.toString() + "> { ?s ?p ?o } }");
+        parameterizedSparqlString.setIri("s", graphUrl);
+        try {
+            ArrayList<QuerySolution> selectSolution = selectQuery(parameterizedSparqlString.toString());
+            ArrayList<Statement> solutionAsStatements = new ArrayList<>();
+            for (QuerySolution solution : selectSolution) {
+                solutionAsStatements.add(ResourceFactory.createStatement(solution.getResource("s"), ResourceFactory.createProperty(solution.get("p").toString()), solution.get("o")));
+            }
+            removeStatements(solutionAsStatements, adminGraphUri.toString());
         }
-        removeStatements(solutionAsStatements, adminGraphUri.toString());
+        catch (ARQException e)
+        {
+            logger.warn("Potential SPARQL injection attack detected.", e);
+            throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+        }
     }
 
     /**
@@ -501,12 +530,20 @@ public class RepositoryFacade {
      * @param graphUrl URL of the graph to be tested
      * @return true, if the graph exists (can be passivated), false otherwise
      */
-    public boolean graphExists(String graphUrl)
-    {
+    public boolean graphExists(String graphUrl) throws RejectMessageException {
         logger.debug("Asking whether graph " + graphUrl + " exists.");
 
         //Can we find the graph in the triplestore? If yes, then it exists and was not deleted
-        return booleanQuery("ASK FROM NAMED <" + graphUrl + "> WHERE { BIND(<" + graphUrl + "> AS ?g ) . GRAPH ?g { ?s ?p ?o . } } ");
+        try {
+            ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString("ASK FROM NAMED <" + graphUrl + "> WHERE { GRAPH ?g { ?s ?p ?o . } } ");
+            parameterizedSparqlString.setIri("g", graphUrl);
+            return booleanQuery(parameterizedSparqlString.toString());
+        }
+        catch (ARQException e)
+        {
+            logger.info("Potential injection attack detected.", e);
+            throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+        }
     }
 
 

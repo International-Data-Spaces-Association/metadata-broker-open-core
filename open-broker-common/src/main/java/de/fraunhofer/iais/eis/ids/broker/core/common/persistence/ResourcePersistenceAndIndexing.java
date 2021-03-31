@@ -6,11 +6,13 @@ import de.fraunhofer.iais.eis.ids.broker.core.common.impl.ResourcePersistenceAda
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.*;
 import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
+import org.apache.jena.query.ParameterizedSparqlString;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
+import org.apache.jena.sparql.ARQException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,17 +106,31 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             List<String> activeGraphs = repositoryFacade.getActiveGraphs();
             if(activeGraphs.isEmpty()) return false;
 
+
             StringBuilder queryString = new StringBuilder();
             queryString.append("PREFIX ids: <https://w3id.org/idsa/core/> ");
             queryString.append("ASK ");
             activeGraphs.forEach(graphName -> queryString.append("FROM NAMED <").append(graphName).append("> "));
-            queryString.append("WHERE { GRAPH ?g { BIND(<").append(resourceUri.toString()).append("> AS ?res) . ");
-            queryString.append("?res a ids:Resource ; ");
-            queryString.append("?p ?o . } }");
-            return repositoryFacade.booleanQuery(queryString.toString());
+            queryString.append("WHERE { GRAPH ?g { ")
+                    //Instead of binding the value here, use the more secure parameter binding of parameterized sparql strings
+                    //.append("BIND(<").append(resourceUri.toString()).append("> AS ?res) . ")
+                    .append("?res a ids:Resource ; ").append("?p ?o . } }");
+            ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString(queryString.toString());
+            //Replace variable securely
+            parameterizedSparqlString.setIri("res", resourceUri.toString());
+
+            return repositoryFacade.booleanQuery(parameterizedSparqlString.toString());
         }
         catch (Exception e)
         {
+            //If an injection attack is detected, an ARQException will be thrown, see:
+            // https://jena.apache.org/documentation/query/parameterized-sparql-strings.html
+            if(e instanceof ARQException)
+            {
+                logger.warn("Possible injection attack detected", e);
+                //Do not provide any further information to the attacker
+                throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+            }
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
     }
@@ -172,6 +188,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     }
 
     static URI tryGetRewrittenResourceUri(URI connectorUri, URI resourceUri) throws RejectMessageException {
+        //Cannot do this as parameterised SPARQL query, as the connector URI is not bound to a variable, but to the FROM clause instead
+        ParameterizedSparqlString pss = new ParameterizedSparqlString();
         String queryString = "PREFIX ids: <https://w3id.org/idsa/core/> SELECT ?uri FROM NAMED <" + connectorUri.toString() + "> WHERE { GRAPH ?g { ?uri a ids:Resource . FILTER regex( str(?uri), \"" + resourceUri.hashCode() + "\" ) } } ";
         ArrayList<QuerySolution> solution = repositoryFacade.selectQuery(queryString);
         if(solution != null && !solution.isEmpty())
@@ -191,7 +209,6 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     //TODO: ResourceUnavailableValidationStrategy? Need to make sure that one cannot delete another connector's resources
     @Override
     public void unavailable(URI resourceUri, URI connectorUri) throws IOException, RejectMessageException {
-        URI initialResourceUri = resourceUri;
         if(!repositoryFacade.graphIsActive(connectorUri.toString()))
         {
             connectorUri = URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
@@ -256,27 +273,39 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             resourceUri = tryGetRewrittenResourceUri(connectorUri, resourceUri);
         }
         //Grab "all" information about a Resource. This includes everything pointing at a resource as well as all child objects of a resource, up to a (rather arbitrary) depth of 7
-        Model graphQueryResult = repositoryFacade.constructQuery(
-                "CONSTRUCT { ?res ?p ?o . ?o ?p2 ?o2 . ?o2 ?p3 ?o3 . ?o3 ?p4 ?o4 . ?o4 ?p5 ?o5 . ?o5 ?p6 ?o6 . ?o6 ?p7 ?o7 . ?s ?p ?res . } " +
+        ParameterizedSparqlString queryString = new ParameterizedSparqlString("CONSTRUCT { ?res ?p ?o . ?o ?p2 ?o2 . ?o2 ?p3 ?o3 . ?o3 ?p4 ?o4 . ?o4 ?p5 ?o5 . ?o5 ?p6 ?o6 . ?o6 ?p7 ?o7 . ?s ?p ?res . } " +
                         "WHERE { " +
                         //We already ensured that this graph is active
-                        "BIND(<" + connectorUri.toString() + "> AS ?g) . " +
-                        "BIND(<" + resourceUri.toString() + "> AS ?res) . " +
+                        //"BIND(<" + connectorUri.toString() + "> AS ?g) . " +
+                        //"BIND(<" + resourceUri.toString() + "> AS ?res) . " +
                         "GRAPH ?g { { ?res ?p ?o . OPTIONAL { ?o ?p2 ?o2 . OPTIONAL { ?o2 ?p3 ?o3 . OPTIONAL { ?o3 ?p4 ?o4 . OPTIONAL { ?o4 ?p5 ?o5 . OPTIONAL { ?o5 ?p6 ?o6 . OPTIONAL { ?o6 ?p7 ?o7 . } } } } } } } " +
                         "UNION " +
                         "{ ?s ?p ?res . }" +
                         "} }");
-        if(graphQueryResult.isEmpty())
-        {
-            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The resource you are trying to update or remove was not found. Try sending a ResourceAvailableMessage instead."));
+        queryString.setIri("g", connectorUri.toString());
+        queryString.setIri("res", resourceUri.toString());
+        try {
+            Model graphQueryResult = repositoryFacade.constructQuery(queryString.toString());
+            if(graphQueryResult.isEmpty())
+            {
+                throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The resource you are trying to update or remove was not found. Try sending a ResourceAvailableMessage instead."));
+            }
+            //Dump the result into a format over which we can iterate multiple times
+            ArrayList<Statement> graphQueryResultAsList = new ArrayList<>();
+            StmtIterator iterator = graphQueryResult.listStatements();
+            while(iterator.hasNext())
+            {
+                graphQueryResultAsList.add(iterator.next());
+            }
+            repositoryFacade.removeStatements(graphQueryResultAsList, connectorUri.toString());
         }
-        //Dump the result into a format over which we can iterate multiple times
-        ArrayList<Statement> graphQueryResultAsList = new ArrayList<>();
-        StmtIterator iterator = graphQueryResult.listStatements();
-        while(iterator.hasNext())
+        //Check if injection attack was detected
+        catch (ARQException e)
         {
-            graphQueryResultAsList.add(iterator.next());
+            logger.warn("Possible injection attack detected", e);
+            //Do not provide any exception information to the potential attacker
+            throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
         }
-        repositoryFacade.removeStatements(graphQueryResultAsList, connectorUri.toString());
+
     }
 }

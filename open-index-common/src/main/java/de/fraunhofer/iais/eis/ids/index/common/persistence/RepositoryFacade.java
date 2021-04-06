@@ -188,12 +188,24 @@ public class RepositoryFacade {
 
     /**
      * Function to remove a given set of statements from a given named graph
+     * @param model Model containing all statements to be removed
+     * @param namedGraphUri Named graph from which the statements should be removed
+     */
+    public void removeStatements(Model model, String namedGraphUri)
+    {
+        ArrayList<Statement> asList = new ArrayList<>();
+        model.listStatements().forEachRemaining(asList::add);
+        removeStatements(asList, namedGraphUri);
+    }
+
+    /**
+     * Function to remove a given set of statements from a given named graph
      * @param statementsToRemove List of statements to be removed
      * @param namedGraphUri Named graph from which the statements should be removed
      */
-    public void removeStatements(List<Statement> statementsToRemove, String namedGraphUri)
+    public void removeStatements(Iterable<Statement> statementsToRemove, String namedGraphUri)
     {
-        if(statementsToRemove.size() == 0)
+        if(statementsToRemove == null || !statementsToRemove.iterator().hasNext())
         {
             return;
         }
@@ -486,15 +498,16 @@ public class RepositoryFacade {
      * @param graphUrl Graph URL which should be removed from the admin graph
      */
     private void removeGraphFromAdminGraph(String graphUrl) throws RejectMessageException {
-        ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString("SELECT ?s ?p ?o FROM NAMED <" + adminGraphUri.toString() + "> WHERE { GRAPH <" + adminGraphUri.toString() + "> { ?s ?p ?o } }");
+        ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString("CONSTRUCT { ?s ?p ?o . } FROM NAMED <" + adminGraphUri.toString() + "> WHERE { GRAPH <" + adminGraphUri.toString() + "> { ?s ?p ?o } }");
         parameterizedSparqlString.setIri("s", graphUrl);
         try {
-            ArrayList<QuerySolution> selectSolution = selectQuery(parameterizedSparqlString.toString());
-            ArrayList<Statement> solutionAsStatements = new ArrayList<>();
+            Model constructSolution = constructQuery(parameterizedSparqlString.toString());
+            /*ArrayList<Statement> solutionAsStatements = new ArrayList<>();
             for (QuerySolution solution : selectSolution) {
                 solutionAsStatements.add(ResourceFactory.createStatement(solution.getResource("s"), ResourceFactory.createProperty(solution.get("p").toString()), solution.get("o")));
-            }
-            removeStatements(solutionAsStatements, adminGraphUri.toString());
+            }*/
+
+            removeStatements(constructSolution, adminGraphUri.toString());
         }
         catch (ARQException e)
         {

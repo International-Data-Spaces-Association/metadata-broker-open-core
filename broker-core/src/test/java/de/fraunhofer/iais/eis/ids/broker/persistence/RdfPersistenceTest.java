@@ -68,6 +68,7 @@ public class RdfPersistenceTest {
                 ._inboundModelVersion_(asList("4.0.0"))
                 ._resourceCatalog_(asList(new ResourceCatalogBuilder().build()))
                 ._securityProfile_(SecurityProfile.BASE_SECURITY_PROFILE)
+                ._hasDefaultEndpoint_(new ConnectorEndpointBuilder()._accessURL_(URI.create("https://example.org/endpoint")).build())
                 .build();
 
     }

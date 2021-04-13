@@ -31,6 +31,7 @@ public class RegistrationHandlerTest {
             ._inboundModelVersion_(asList("3.0.0"))
             ._resourceCatalog_(asList(new ResourceCatalogBuilder().build()))
             ._securityProfile_(SecurityProfile.BASE_SECURITY_PROFILE)
+            ._hasDefaultEndpoint_(new ConnectorEndpointBuilder()._accessURL_(URI.create("https://example.org/endpoint")).build())
             .build();
     private final SecurityTokenProvider securityTokenProvider = new SecurityTokenProvider() {
         @Override
@@ -49,6 +50,7 @@ public class RegistrationHandlerTest {
             ._outboundModelVersion_("3.0.0")
             ._resourceCatalog_(asList(new ResourceCatalogBuilder().build()))
             ._securityProfile_(SecurityProfile.BASE_SECURITY_PROFILE)
+            ._hasDefaultEndpoint_(new ConnectorEndpointBuilder()._accessURL_(URI.create("https://example.org/endpoint")).build())
             .build();
 
     private final Message connectorAvailable = new ConnectorUpdateMessageBuilder()

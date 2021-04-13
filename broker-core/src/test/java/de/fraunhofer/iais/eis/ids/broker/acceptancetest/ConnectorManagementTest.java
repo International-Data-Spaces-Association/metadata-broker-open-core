@@ -82,6 +82,7 @@ public class ConnectorManagementTest {
                 ._inboundModelVersion_(asList("3.0.0"))
                 ._resourceCatalog_(asList(new ResourceCatalogBuilder().build()))
                 ._securityProfile_(SecurityProfile.BASE_SECURITY_PROFILE)
+                ._hasDefaultEndpoint_(new ConnectorEndpointBuilder()._accessURL_(URI.create("https://example.org/endpoint")).build())
                 .build();
 
         brokerQuery = new QueryMessageBuilder()

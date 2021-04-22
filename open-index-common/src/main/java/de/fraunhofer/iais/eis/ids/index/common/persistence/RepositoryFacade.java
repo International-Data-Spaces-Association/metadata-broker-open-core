@@ -36,6 +36,8 @@ public class RepositoryFacade {
     private String sparqlUrl;
     private Dataset dataset;
 
+    private static boolean writableConnectionWarningPrinted = false;
+
     /**
      * Default constructor, creating a local in-memory repository
      */
@@ -110,7 +112,12 @@ public class RepositoryFacade {
         }
         else
         {
-            logger.warn("Cannot return read-only connection to in-memory dataset. Connection will be writable!");
+            if(!writableConnectionWarningPrinted)
+            {
+                logger.warn("Cannot return read-only connection to in-memory dataset. Connection will be writable!");
+                logger.warn("This warning is only printed once.");
+                writableConnectionWarningPrinted = true;
+            }
             return RDFConnectionFactory.connect(dataset);
         }
     }

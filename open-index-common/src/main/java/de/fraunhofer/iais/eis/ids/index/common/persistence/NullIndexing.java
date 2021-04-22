@@ -1,15 +1,14 @@
 package de.fraunhofer.iais.eis.ids.index.common.persistence;
 
+
 import de.fraunhofer.iais.eis.InfrastructureComponent;
 import de.fraunhofer.iais.eis.Participant;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.spi.Indexing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
-/**
- * Sample indexing class which ignores all indexing requests. Use this if no indexing is desired
- */
 public class NullIndexing implements Indexing {
 
     final private Logger logger = LoggerFactory.getLogger(NullIndexing.class);

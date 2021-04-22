@@ -1,4 +1,4 @@
-package de.fraunhofer.iais.eis.ids.index.common.persistence;
+package de.fraunhofer.iais.eis.ids.index.common.persistence.spi;
 
 import de.fraunhofer.iais.eis.InfrastructureComponent;
 import de.fraunhofer.iais.eis.Participant;

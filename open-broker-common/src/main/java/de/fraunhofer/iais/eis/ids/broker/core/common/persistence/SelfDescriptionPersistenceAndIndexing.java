@@ -4,6 +4,7 @@ import de.fraunhofer.iais.eis.*;
 import de.fraunhofer.iais.eis.ids.broker.core.common.impl.SelfDescriptionPersistenceAdapter;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.*;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.spi.Indexing;
 import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;

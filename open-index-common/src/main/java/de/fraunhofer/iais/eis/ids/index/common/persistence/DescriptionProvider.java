@@ -151,10 +151,7 @@ public class DescriptionProvider {
         {
             queryString.append("OPTIONAL { ?o").append(i).append(" ?p").append(i + 1).append(" ?o").append(i + 1).append(" ");
         }
-        for(int i = 0; i < depth; i++)
-        {
-            queryString.append("}");
-        }
+        queryString.append("} ".repeat(Math.max(0, depth)));
 
         queryString.append("} }"); //Brackets from graph and where
 

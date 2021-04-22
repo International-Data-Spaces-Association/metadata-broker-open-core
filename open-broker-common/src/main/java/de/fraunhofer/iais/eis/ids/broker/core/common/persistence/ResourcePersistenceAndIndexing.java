@@ -5,6 +5,7 @@ import de.fraunhofer.iais.eis.Resource;
 import de.fraunhofer.iais.eis.ids.broker.core.common.impl.ResourcePersistenceAdapter;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.*;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.spi.Indexing;
 import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
 import org.apache.jena.query.ParameterizedSparqlString;
 import org.apache.jena.query.QuerySolution;

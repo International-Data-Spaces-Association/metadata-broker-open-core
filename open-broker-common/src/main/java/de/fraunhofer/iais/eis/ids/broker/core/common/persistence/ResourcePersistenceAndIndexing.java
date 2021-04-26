@@ -89,7 +89,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         //Are the results equal to the binding name "?catalog" ? If so, no such catalog was found
         if(catalogString.equals("?catalog\n"))
         {
-            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("Catalog of connector " + connectorUri + " not found. Did you send a ConnectorAvailableMessage yet?"));
+            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("Catalog of connector " + connectorUri + " not found. Did you send a ConnectorUpdateMessage yet?"));
         }
         //TODO: What about multiple catalogs?
         return new URI(catalogString.substring(catalogString.indexOf("<") + 1, catalogString.indexOf(">")));

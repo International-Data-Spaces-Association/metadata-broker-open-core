@@ -1,7 +1,5 @@
 package de.fraunhofer.iais.eis.ids.index.common.main;
 
-import de.fraunhofer.iais.eis.InfrastructureComponent;
-import de.fraunhofer.iais.eis.Participant;
 import de.fraunhofer.iais.eis.ids.component.core.SecurityTokenProvider;
 import de.fraunhofer.iais.eis.ids.component.core.SelfDescriptionProvider;
 import de.fraunhofer.iais.eis.ids.component.interaction.multipart.MultipartComponentInteractor;
@@ -35,6 +33,18 @@ public abstract class AppConfigTemplate {
             return "";
         }
     };
+
+    /**
+     * This function can be used to overwrite the default behaviour of trying to find any indexing in the classpath
+     * @param indexing Desired indexing implementation to be used
+     * @return AppConfigTemplate with new value set for indexing
+     */
+    public AppConfigTemplate setIndexing(Indexing indexing)
+    {
+        this.indexing = indexing;
+        return this;
+    }
+
     public Collection<String> trustedJwksHosts;
     public boolean dapsValidateIncoming;
     public URI responseSenderAgent;

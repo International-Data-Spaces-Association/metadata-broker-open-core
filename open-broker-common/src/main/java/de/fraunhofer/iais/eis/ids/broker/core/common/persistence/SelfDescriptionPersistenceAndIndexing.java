@@ -141,47 +141,55 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      * @return Resource in String representation with rewritten URIs
      * @throws URISyntaxException, if malformed URIs are encountered
      */
-    static String rewriteResource(String currentString, Resource resource, URI catalogUri) throws URISyntaxException {
+    static String rewriteResource(String currentString, Resource resource, URI catalogUri, boolean isOffer) throws URISyntaxException {
         //Was the resource rewritten already?
         if(resource.getId().toString().startsWith(componentCatalogUri.toString()))
         {
             return currentString;
         }
-        URI resourceUri = new URI(catalogUri + "/" + resource.getId().hashCode());
+        URI resourceUri;
+        if(isOffer)
+        {
+            resourceUri = new URI(catalogUri + "/offeredResource/" + resource.getId().hashCode());
+        }
+        else
+        {
+            resourceUri = new URI(catalogUri + "/requestedResource/" + resource.getId().hashCode());
+        }
 
         //First big block is about contracts attached to a resource
         if (resource.getContractOffer() != null && !resource.getContractOffer().isEmpty()) {
             for (ContractOffer contractOffer : resource.getContractOffer()) {
                 //Replace original URI of contract offer with a new one, which is in "our domain"
                 //This allows us to provide further details on this object if requested
-                URI contractOfferUri = new URI(resourceUri + "/" + contractOffer.getId().hashCode());
+                URI contractOfferUri = new URI(resourceUri + "/contractOffer/" + contractOffer.getId().hashCode());
                 currentString = doReplace(currentString, contractOffer.getId(), contractOfferUri);
 
                 //There can be a number of different Rules: Obligations/Duties, Prohibitions and Permissions
                 Map<Rule, URI> allRules = new HashMap<>();
                 if (contractOffer.getObligation() != null && !contractOffer.getObligation().isEmpty()) {
                     for (Duty duty : contractOffer.getObligation()) {
-                        allRules.put(duty, new URI(contractOfferUri.toString() + "/" + duty.getId().hashCode()));
+                        allRules.put(duty, new URI(contractOfferUri + "/obligation/" + duty.getId().hashCode()));
                     }
                 }
                 if (contractOffer.getPermission() != null && !contractOffer.getPermission().isEmpty()) {
                     for (Permission permission : contractOffer.getPermission()) {
-                        allRules.put(permission, new URI(contractOfferUri.toString() + "/" + permission.getId().hashCode()));
+                        allRules.put(permission, new URI(contractOfferUri + "/permission/" + permission.getId().hashCode()));
                         if (permission.getPreDuty() != null && !permission.getPreDuty().isEmpty()) {
                             for (Duty duty : permission.getPreDuty()) {
-                                allRules.put(duty, new URI(contractOfferUri.toString() + "/" + permission.getId().hashCode() + "/" + duty.getId().hashCode()));
+                                allRules.put(duty, new URI(contractOfferUri + "/permission/" + permission.getId().hashCode() + "/preDuty/" + duty.getId().hashCode()));
                             }
                         }
                         if (permission.getPostDuty() != null && !permission.getPostDuty().isEmpty()) {
                             for (Duty duty : permission.getPostDuty()) {
-                                allRules.put(duty, new URI(contractOfferUri.toString() + "/" + permission.getId().hashCode() + "/" + duty.getId().hashCode()));
+                                allRules.put(duty, new URI(contractOfferUri + "/permission/" + permission.getId().hashCode() + "/postDuty/" + duty.getId().hashCode()));
                             }
                         }
                     }
                 }
                 if (contractOffer.getProhibition() != null && !contractOffer.getProhibition().isEmpty()) {
                     for (Prohibition prohibition : contractOffer.getProhibition()) {
-                        allRules.put(prohibition, new URI(contractOfferUri.toString() + "/" + prohibition.getId().hashCode()));
+                        allRules.put(prohibition, new URI(contractOfferUri + "/prohibition/" + prohibition.getId().hashCode()));
                     }
                 }
                 if (!allRules.isEmpty()) {
@@ -189,14 +197,14 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
                         currentString = doReplace(currentString, ruleEntry.getKey().getId(), ruleEntry.getValue());
                         if (ruleEntry.getKey().getConstraint() != null && !ruleEntry.getKey().getConstraint().isEmpty()) {
                             for (AbstractConstraint abstractConstraint : ruleEntry.getKey().getConstraint()) {
-                                currentString = doReplace(currentString, abstractConstraint.getId(), new URI(ruleEntry.getValue() + "/" + abstractConstraint.getId().hashCode()));
+                                currentString = doReplace(currentString, abstractConstraint.getId(), new URI(ruleEntry.getValue() + "/constraint/" + abstractConstraint.getId().hashCode()));
                             }
                         }
                     }
                 }
 
                 if (contractOffer.getContractDocument() != null) {
-                    currentString = doReplace(currentString, contractOffer.getContractDocument().getId(), new URI(contractOfferUri + "/" + contractOffer.getContractDocument().getId().hashCode()));
+                    currentString = doReplace(currentString, contractOffer.getContractDocument().getId(), new URI(contractOfferUri + "/contractDocument/" + contractOffer.getContractDocument().getId().hashCode()));
                 }
 
             }
@@ -208,9 +216,9 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         //Iterate over endpoints. For each present, replace URI
         if (resource.getResourceEndpoint() != null && !resource.getResourceEndpoint().isEmpty()) {
             for (ConnectorEndpoint connectorEndpoint : resource.getResourceEndpoint()) {
-                URI endpointUri = new URI(resourceUri + "/" + connectorEndpoint.getId().hashCode());
+                URI endpointUri = new URI(resourceUri + "/connectorEndpoint/" + connectorEndpoint.getId().hashCode());
                 if (connectorEndpoint.getEndpointArtifact() != null) {
-                    currentString = doReplace(currentString, connectorEndpoint.getEndpointArtifact().getId(), new URI(endpointUri + "/" + connectorEndpoint.getEndpointArtifact().getId().hashCode()));
+                    currentString = doReplace(currentString, connectorEndpoint.getEndpointArtifact().getId(), new URI(endpointUri + "/endpointArtifact/" + connectorEndpoint.getEndpointArtifact().getId().hashCode()));
                 }
 
                 currentString = doReplace(currentString, connectorEndpoint.getId(), endpointUri);
@@ -221,11 +229,11 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         //Iterate over Representations. If Representation present, adapt string of Representation and, if present, Artifact
         if (resource.getRepresentation() != null) {
             for (Representation representation : resource.getRepresentation()) {
-                URI representationURI = new URI(resourceUri + "/" + representation.getId().hashCode());
+                URI representationURI = new URI(resourceUri + "/representation/" + representation.getId().hashCode());
                 currentString = doReplace(currentString, representation.getId(), representationURI);
                 if (representation.getInstance() != null) {
                     for (RepresentationInstance artifact : representation.getInstance()) {
-                        currentString = doReplace(currentString, artifact.getId(), new URI(representationURI + "/" + artifact.getId().hashCode()));
+                        currentString = doReplace(currentString, artifact.getId(), new URI(representationURI + "/instance/" + artifact.getId().hashCode()));
                     }
                 }
             }
@@ -260,18 +268,20 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         //If connector is holding catalogs, rewrite them and their contents
         if (((Connector) infrastructureComponent).getResourceCatalog() != null) {
             for (ResourceCatalog resourceCatalog : ((Connector) infrastructureComponent).getResourceCatalog()) {
-                URI catalogUri = new URI(infrastructureComponentUri + "/" + resourceCatalog.getId().hashCode());
+                URI catalogUri = new URI(infrastructureComponentUri + "/resourceCatalog/" + resourceCatalog.getId().hashCode());
                 currentString = doReplace(currentString, resourceCatalog.getId(), catalogUri);
 
-                Set<Resource> resourcesToHandle = new HashSet<>();
                 if (resourceCatalog.getOfferedResource() != null) {
-                    resourcesToHandle.addAll(resourceCatalog.getOfferedResource());
+                    for(Resource resource : resourceCatalog.getOfferedResource())
+                    {
+                        currentString = rewriteResource(currentString, resource, catalogUri, true);
+                    }
                 }
                 if (resourceCatalog.getRequestedResource() != null) {
-                    resourcesToHandle.addAll(resourceCatalog.getRequestedResource());
-                }
-                for (Resource currentResource : resourcesToHandle) {
-                    currentString = rewriteResource(currentString, currentResource, catalogUri);
+                    for(Resource resource : resourceCatalog.getRequestedResource())
+                    {
+                        currentString = rewriteResource(currentString, resource, catalogUri, false);
+                    }
                 }
             }
         }

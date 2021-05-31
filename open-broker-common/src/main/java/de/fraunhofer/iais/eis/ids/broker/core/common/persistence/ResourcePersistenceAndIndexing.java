@@ -157,7 +157,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             SelfDescriptionPersistenceAndIndexing.replacedIds = new HashMap<>(); //Clear the map tracking all URIs that were replaced
             resource = new Serializer().deserialize( //Parse to Java Class
                     SelfDescriptionPersistenceAndIndexing.addSameAsStatements( //Add owl:sameAs statements for all URIs we are replacing
-                            SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri)), //Replace URIs
+                            //TODO: Here, we assume that an offeredResource is updated, not a requestedResource
+                            SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri, true)), //Replace URIs
                     Resource.class); //Result of parsing should be a Resource
         } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
@@ -245,8 +246,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      * @throws RejectMessageException thrown, if the changes are illegal, or if an internal error has occurred
      */
     private void addToTriplestore(Resource resource, URI connectorUri, URI catalogUri) throws IOException, RejectMessageException, URISyntaxException {
-
-        ResourceModelCreator.InnerModel result = resourceModelCreator.setConnectorUri(connectorUri).toModel(SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri));
+        //TODO: Here, we assume that an offeredResource is updated, not a requestedResource
+        ResourceModelCreator.InnerModel result = resourceModelCreator.setConnectorUri(connectorUri).toModel(SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri, true));
 
         //Add a statement that this Resource is part of some catalog
         //?catalog ids:offeredResource ?resource

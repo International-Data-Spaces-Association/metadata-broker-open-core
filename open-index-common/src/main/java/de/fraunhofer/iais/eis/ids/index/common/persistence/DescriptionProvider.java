@@ -83,7 +83,7 @@ public class DescriptionProvider {
         //If the root URI has been requested, we need to create specific SPARQL CONSTRUCT queries to serve a connector catalog
         boolean atRoot = false;
 
-        if(requestedElement.equals(catalogUri) || (requestedElement.toString() + "/").equals(catalogUri.toString()))
+        if(requestedElement.equals(catalogUri) || (requestedElement + "/").equals(catalogUri.toString()))
         {
             logger.info("Catalog has been requested (with depth: " + depth + "): " + requestedElement);
             atRoot = true;

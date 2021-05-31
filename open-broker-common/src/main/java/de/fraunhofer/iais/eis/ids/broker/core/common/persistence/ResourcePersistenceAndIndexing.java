@@ -188,7 +188,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         return resource.getId();
     }
 
-    static URI tryGetRewrittenResourceUri(URI connectorUri, URI resourceUri) throws RejectMessageException {
+    public static URI tryGetRewrittenResourceUri(URI connectorUri, URI resourceUri) throws RejectMessageException {
         //Cannot do this as parameterised SPARQL query, as the connector URI is not bound to a variable, but to the FROM clause instead
         ParameterizedSparqlString pss = new ParameterizedSparqlString();
         String queryString = "PREFIX ids: <https://w3id.org/idsa/core/> SELECT ?uri FROM NAMED <" + connectorUri.toString() + "> WHERE { GRAPH ?g { ?uri a ids:Resource . FILTER regex( str(?uri), \"" + resourceUri.hashCode() + "\" ) } } ";

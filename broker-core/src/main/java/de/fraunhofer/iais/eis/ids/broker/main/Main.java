@@ -68,8 +68,6 @@ public class Main extends MainTemplate implements ComponentInteractorProvider {
         componentCatalogUri = env.getProperty("component.catalogUri");
         componentModelVersion = env.getProperty("component.modelversion");
         sslCertificatePath = env.getProperty("ssl.certificatePath");
-        elasticsearchHostname = env.getProperty("elasticsearch.hostname");
-        elasticsearchPort = Integer.parseInt(Objects.requireNonNull(env.getProperty("elasticsearch.port")));
         keystorePassword = env.getProperty("keystore.password");
         keystoreAlias = env.getProperty("keystore.alias");
 //        componentIdsId = env.getProperty("component.idsid");

@@ -30,8 +30,6 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
     public String componentCatalogUri;
     public String componentModelVersion;
     public String sslCertificatePath;
-    public String elasticsearchHostname;
-    public int elasticsearchPort;
     public String keystorePassword, keystoreAlias;
 
     @Deprecated

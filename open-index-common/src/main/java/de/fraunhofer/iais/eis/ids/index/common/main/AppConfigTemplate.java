@@ -3,13 +3,14 @@ package de.fraunhofer.iais.eis.ids.index.common.main;
 import de.fraunhofer.iais.eis.ids.component.core.SecurityTokenProvider;
 import de.fraunhofer.iais.eis.ids.component.core.SelfDescriptionProvider;
 import de.fraunhofer.iais.eis.ids.component.interaction.multipart.MultipartComponentInteractor;
-import de.fraunhofer.iais.eis.ids.index.common.persistence.Indexing;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.NullIndexing;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.spi.Indexing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.ServiceLoader;
 
 /**
  * Template class for AppConfig of an index service.
@@ -23,13 +24,27 @@ public abstract class AppConfigTemplate {
     public String contextDocumentUrl;
     public URI catalogUri;
     public SelfDescriptionProvider selfDescriptionProvider;
-    public Indexing indexing = new NullIndexing();
+
+    //Try to find some indexing on classpath. If not present, use Null Indexing
+    public Indexing indexing = ServiceLoader.load(Indexing.class).findFirst().orElse(new NullIndexing());
     public SecurityTokenProvider securityTokenProvider = new SecurityTokenProvider() {
         @Override
         public String getSecurityToken() {
             return "";
         }
     };
+
+    /**
+     * This function can be used to overwrite the default behaviour of trying to find any indexing in the classpath
+     * @param indexing Desired indexing implementation to be used
+     * @return AppConfigTemplate with new value set for indexing
+     */
+    public AppConfigTemplate setIndexing(Indexing indexing)
+    {
+        this.indexing = indexing;
+        return this;
+    }
+
     public Collection<String> trustedJwksHosts;
     public boolean dapsValidateIncoming;
     public URI responseSenderAgent;

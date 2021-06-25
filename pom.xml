@@ -15,12 +15,12 @@
     </modules>
     <properties>
         <rdf4j.version>3.4.0</rdf4j.version>
-        <jena.version>3.16.0</jena.version>
+        <jena.version>4.1.0</jena.version>
         <ids-components.version>${revision}</ids-components.version>
         <spring-boot.version>2.1.16.RELEASE</spring-boot.version>
         <jackson.version>2.11.0</jackson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <revision>4.0.10</revision>
+        <revision>4.0.11-SNAPSHOT</revision>
     </properties>
 
     <reporting>

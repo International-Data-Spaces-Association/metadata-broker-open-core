@@ -90,6 +90,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
             List<String> activeGraphs = repositoryFacade.getActiveGraphs();
             if(activeGraphs.isEmpty()) //Nothing to index. Return here to make sure that in case no active graphs exist, inactive ones are also ignored
             {
+            	logger.warn("No graphs to index");
                 return;
             }
 
@@ -254,6 +255,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         replacedIds = new HashMap<>();
         //TODO: Ideally, use relative URIs: "./ + hashCode" instead, but Serializer (Jena) fails on that. We don't really want to store the full URI here, as that makes the broker un-portable
         if (infrastructureComponent.getId() == null) {
+        	logger.error("Connector did not provide a URI");
             throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE, new NullPointerException("Connector did not provide a URI"));
         }
 
@@ -319,8 +321,11 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         //Replace URIs in this infrastructureComponent with URIs matching our scheme. This is required for a RESTful API
         //TODO: Do the same for resources (or at ParIS, for participants)
         try {
+        	logger.info("Replacing URIs of  Id "+ infrastructureComponent.getId().toString() + " and maintainer"+ infrastructureComponent.getMaintainer().toString() + " of component" + infrastructureComponent);
             infrastructureComponent = replaceIds(infrastructureComponent);
+            
         } catch (URISyntaxException e) {
+        	logger.warn("Replacing URIs of "+infrastructureComponent+" failed.");
             throw new IOException(e);
         }
         if (!existed) {
@@ -334,19 +339,24 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         //If the connector was passive before, the document was deleted from the index, so we need to recreate it
         if (wasActive) { //Connector exists in index - update it
             try {
+            	logger.info("Updating "+infrastructureComponent+" in index");
                 indexing.update(infrastructureComponent);
             } catch (Exception e) {
                 if (e.getMessage().contains("document_missing_exception")) {
-                    indexing.add(infrastructureComponent);
+                	logger.info("Adding "+infrastructureComponent+" in index");
+                	indexing.add(infrastructureComponent);
                 } else {
                     logger.error("ElasticsearchStatusException caught with message " + e.getMessage());
                     throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
                 }
             }
         } else { //Connector does not exist in index - create it
-            indexing.add(infrastructureComponent);
+        	logger.info("Creating new "+ infrastructureComponent+" as it was not available earlier.");
+        	indexing.add(infrastructureComponent);
         }
         //return the (rewritten) URI of the infrastructure component
+        logger.info("The rewritten URI of the " +infrastructureComponent+" " + infrastructureComponent.getId().toString());
+       
         return infrastructureComponent.getId();
     }
 
@@ -386,11 +396,14 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         URI rewrittenConnectorUri = rewriteConnectorUri(issuerConnector);
         if (repositoryFacade.graphIsActive(rewrittenConnectorUri.toString())) {
             repositoryFacade.changePassivationOfGraph(rewrittenConnectorUri.toString(), false);
+            logger.info("Connector deleted from the index successfully.");
         } else {
+        	logger.error("The connector you are trying to remove was not found");
             throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector you are trying to remove was not found"));
         }
 
         //Remove the passivated graph from indexing. Upon re-activating, this will be undone
+        logger.info("Removing passivated graph   " + rewrittenConnectorUri+" from indexing ");
         indexing.delete(rewrittenConnectorUri);
     }
 

@@ -1,6 +1,8 @@
 package de.fraunhofer.iais.eis.ids.broker.core.common.persistence;
 
 import de.fraunhofer.iais.eis.*;
+import de.fraunhofer.iais.eis.ids.component.core.ContractRejectMessageException;
+
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
 import de.fraunhofer.iais.eis.ids.component.core.SecurityTokenProvider;
 import de.fraunhofer.iais.eis.ids.component.core.TokenRetrievalException;
@@ -15,6 +17,11 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
 
+import javax.xml.datatype.XMLGregorianCalendar;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * This class is a message handler for messages about the status of resources,
  * such as ResourceAvailableMessages, ResourceUpdateMessages, and ResourceUnavailableMessages
@@ -26,7 +33,7 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
     private final SecurityTokenProvider securityTokenProvider;
     private final URI responseSenderAgent;
     private final RepositoryFacade repositoryFacade;
-
+    private final Logger logger = LoggerFactory.getLogger(ResourceMessageHandler.class);
     /**
      * Constructor
      * @param resourceStatusHandler The component which then takes care of persisting the changes
@@ -52,14 +59,25 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
      */
     @Override
     public DefaultSuccessMAP handleValidated(ResourceMAP messageAndPayload) throws RejectMessageException {
+		XMLGregorianCalendar issueAt = messageAndPayload.getMessage().getIssued();
+
         ResourceNotificationMessage msg = (ResourceNotificationMessage) messageAndPayload.getMessage();
         MessageLogger.logMessage(messageAndPayload, true, "affectedResource");
         URI rewrittenUri = null;
         try {
             if (msg instanceof ResourceUpdateMessage) {
                 //ResourceUpdateMessages have the affected Resource in their payload
-                if (msg.getAffectedResource() != null && messageAndPayload.getPayload().isPresent()) {
 
+
+                if (msg.getAffectedResource() != null && messageAndPayload.getPayload().isPresent()) {
+                	
+                	 logger.info(issueAt.getYear()+":"+issueAt.getMonth()+ ":"+ issueAt.getDay()+":"+issueAt.getHour()+":"+ issueAt.getMinute());
+                     logger.info("Component ID :"+ infrastructureComponent.getId());
+                     logger.info("Maintainer :"+ infrastructureComponent.getMaintainer());
+                     logger.info("Incoming message with ID :"+ messageAndPayload.getMessage().getId());
+                     logger.info("Issuer Connector :"+ messageAndPayload.getMessage().getIssuerConnector());
+                     logger.info("Sender Connector :"+ messageAndPayload.getMessage().getSenderAgent());
+                	
                     //TODO: Check if method is POST and, if so, if Resource already exists
                     if(messageAndPayload.getMessage().getProperties() != null) {
                         //POST is not idempotent. Making sure that, in case POST is used, the connector does not exist yet
@@ -70,11 +88,18 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
                                     //Check if resource exists yet
                                     if (resourceStatusHandler.resourceExists(((ResourceUpdateMessage) messageAndPayload.getMessage()).getAffectedResource())
                                             || resourceStatusHandler.resourceExists(ResourcePersistenceAndIndexing.tryGetRewrittenResourceUri(messageAndPayload.getMessage().getIssuerConnector(), ((ResourceUpdateMessage) messageAndPayload.getMessage()).getAffectedResource()))) {
-                                        throw new RejectMessageException(RejectionReason.TOO_MANY_RESULTS, new Exception("The resource you are trying to post already exists. To update it, use PUT instead."));
+                                    	logger.error("The resource you are trying to post already exists. To update it, use PUT instead.");
+                                    	throw new RejectMessageException(RejectionReason.TOO_MANY_RESULTS, new Exception("The resource you are trying to post already exists. To update it, use PUT instead."));
                                     }
                                 }
                                 catch (RejectMessageException ignored)
                                 {
+                                	logger.error("Message could not be processed.");
+                                    logger.error("Resource doesnt exist, hence persisting and indexing of the modified resource failed.");
+                                    logger.error("Error occured due to ", ignored.getCause());
+                                    logger.error("Class causing error ", ignored.getCause().getClass());
+                                    logger.error(" ", ignored.getMessage());
+                                
                                     //RejectMessageException is thrown by ResourcePersistenceAndIndexing.tryGetRewrittenResourceUri, in case the resource does not exist
                                     //This may very well happen here, particularly if the resources is posted correctly (i.e. didn't exist before)
                                 }
@@ -84,6 +109,7 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
                     rewrittenUri = resourceStatusHandler.updated(messageAndPayload.getPayload().get(), msg.getIssuerConnector());
                 } else {
                     //If no payload present, Resource cannot be updated
+                	
                     throw new RejectMessageException(RejectionReason.BAD_PARAMETERS, new NullPointerException("Affected Resource is null or payload is missing"));
                 }
             } else if (msg instanceof ResourceUnavailableMessage) {
@@ -112,6 +138,9 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
         try {
             //No Exception occurred. Send MessageProcessedNotificationMessage
             DefaultSuccessMAP returnValue = new DefaultSuccessMAP(infrastructureComponent.getId(), infrastructureComponent.getOutboundModelVersion(), messageAndPayload.getMessage().getId(), securityTokenProvider.getSecurityTokenAsDAT(), responseSenderAgent);
+            logger.info("Component ID :"+ infrastructureComponent.getId().toString());
+            logger.info("Maintainer :"+ infrastructureComponent.getMaintainer());
+            logger.info("Incoming message with ID :"+ messageAndPayload.getMessage().getId());
             if(rewrittenUri != null)
             {
                 //Attach the rewritten URI to the response, so that the recipient knows under which address the resource can be found

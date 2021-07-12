@@ -31,7 +31,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     private final ConnectorModelCreator connectorModelCreator = new ConnectorModelCreator();
 
     private final RepositoryFacade repositoryFacade;
-    private final Indexing indexing;
+    private Indexing indexing;
 
     private static URI componentCatalogUri;
 
@@ -58,6 +58,11 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         }, date, 12 * 60 * 60 * 1000); //12*60*60*1000 add 12 hours delay between job executions.
 
         Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
+    }
+
+    public void setIndexing(Indexing indexing)
+    {
+        this.indexing = indexing;
     }
 
 

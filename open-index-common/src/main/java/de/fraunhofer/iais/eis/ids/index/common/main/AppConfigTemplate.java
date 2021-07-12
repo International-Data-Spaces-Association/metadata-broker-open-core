@@ -41,6 +41,7 @@ public abstract class AppConfigTemplate {
      */
     public AppConfigTemplate setIndexing(Indexing indexing)
     {
+        logger.info("Setting indexing to " + indexing.getClass().getSimpleName());
         this.indexing = indexing;
         return this;
     }

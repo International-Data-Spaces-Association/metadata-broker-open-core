@@ -3,6 +3,7 @@ package de.fraunhofer.iais.eis.ids.broker.persistence;
 import de.fraunhofer.iais.eis.*;
 import de.fraunhofer.iais.eis.ids.broker.core.common.persistence.SelfDescriptionPersistenceAndIndexing;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.NullIndexing;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.RepositoryFacade;
 import de.fraunhofer.iais.eis.util.TypedLiteral;
 import org.junit.Assert;
@@ -27,7 +28,7 @@ public class RdfPersistenceTest {
     public void setUp() {
         repositoryFacade = new RepositoryFacade();
         try {
-            persistence = new SelfDescriptionPersistenceAndIndexing(repositoryFacade, new URI("http://localhost:8080/connectors/"));
+            persistence = new SelfDescriptionPersistenceAndIndexing(repositoryFacade, new URI("http://localhost:8080/connectors/"), new NullIndexing());
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }

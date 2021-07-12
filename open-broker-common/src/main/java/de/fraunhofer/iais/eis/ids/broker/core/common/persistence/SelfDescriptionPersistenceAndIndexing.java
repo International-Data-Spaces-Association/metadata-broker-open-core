@@ -31,7 +31,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     private final ConnectorModelCreator connectorModelCreator = new ConnectorModelCreator();
 
     private final RepositoryFacade repositoryFacade;
-    private Indexing indexing = new NullIndexing();
+    private final Indexing indexing;
 
     private static URI componentCatalogUri;
 
@@ -42,8 +42,9 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      *
      * @param repositoryFacade repository (triple store) to which the modifications should be stored
      */
-    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri) {
+    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri, Indexing indexing) {
         this.repositoryFacade = repositoryFacade;
+        this.indexing = indexing;
         SelfDescriptionPersistenceAndIndexing.componentCatalogUri = componentCatalogUri;
         Date date = new Date();
         Timer timer = new Timer();
@@ -59,14 +60,6 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
     }
 
-    /**
-     * Setter for the indexing method
-     *
-     * @param indexing indexing to be used
-     */
-    public void setIndexing(Indexing indexing) {
-        this.indexing = indexing;
-    }
 
     /**
      * Setter for the context document URL. Typically extracted from the application.properties

@@ -113,11 +113,13 @@ Furthermore, the docker-compose logs command can be used to access the logs for 
 
 
 **Step 4: Stop The IDS Metadata Broker** 
+
 To stop the Broker, run the following in the terminal in the same path as the docker-compose.yml file:
 			
 		docker-compose down
 
 **Step 5: Update The IDS Metadata Broker**
+
 To update an existing installation of the IDS Metadata Broker, first repeat the steps explained in **Step 2**. Containers can be either hot updated or restarted to apply the changes. To hot update a container, run the following command:
 
 		docker-compose up -d --no-deps --build <container name>

@@ -42,6 +42,9 @@ In this section, we will provide some guidance as to recommendations for the num
 ## 4  Installation Guide
 This part aims to aid IT administrators or developers in the installation of the IDS Metadata Broker. Metadata Broker is still actively maintained by Fraunhofer IAIS. If any problem arises while following the installation guide, please get in touch with the email provided at the end of this file.
 
+The IDS Metadata Broker consists of several Docker containers as shown in the image below, which need to be orchestrated by docker-compose.
+![index](https://user-images.githubusercontent.com/38520537/125645191-55307611-1262-421a-97b6-c3b626246556.png)
+
 ### 4.1 Prepare The SSL Certificate
 For the SSL certificate, you need to have these two files:
 -  **server.crt:** an x509 certificate, either self-signed or from an official CA

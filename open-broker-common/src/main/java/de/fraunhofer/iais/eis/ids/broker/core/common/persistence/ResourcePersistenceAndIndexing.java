@@ -147,11 +147,16 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     @Override
     public URI updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException {
         URI catalogUri;
+        logger.info("Update request received. Connector URI: " + connectorUri + " with resource " + resource.getId());
         try {
             //Check if the connectorURI is rewritten already. If not, rewrite now
-            if(!connectorUri.toString().startsWith(componentCatalogUri.toString()))
+            if(!connectorUri.toString().startsWith(componentCatalogUri.toString())) {
                 connectorUri = SelfDescriptionPersistenceAndIndexing.rewriteConnectorUri(connectorUri);
+                logger.info("Rewrote connectorUri to " + connectorUri);
+            }
+            logger.info("Fetching catalog of connector");
             catalogUri = getConnectorCatalog(connectorUri);
+            logger.info("Catalog found. URI: " + catalogUri);
 
             //Rewrite resource
             SelfDescriptionPersistenceAndIndexing.replacedIds = new HashMap<>(); //Clear the map tracking all URIs that were replaced
@@ -162,9 +167,12 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
+
+        logger.info("Checking if connector is active in triple store. ID: " + connectorUri);
         if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
             connectorUri = URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
             if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
+                logger.info("Found that connector is not active. Must be registered first");
                 throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not actively registered at this broker. Cannot update resource for this connector."));
             }
         }

@@ -40,6 +40,7 @@ In this section, we will provide some guidance as to recommendations for the num
 - **Maven**: Maven 3.6.3 or later should be installed in your local environment to build the docker image
 
 ## 4  Installation Guide
+This part aims to aid IT administrators or developers in the installation of the IDS Metadata Broker. Metadata Broker is still actively maintained by Fraunhofer IAIS. If any problem arises while following the installation guide, please get in touch with the email provided at the end of this file.
 
 ### 4.1 Prepare The SSL Certificate
 For the SSL certificate, you need to have these two files:
@@ -60,9 +61,13 @@ To run the broker you can either make use of docker images provided by us as sho
 #### 4.2.1 Running The Broker With Provided Image
 If you want to run the broker with the provided image please follow the following steps: 
 
-**Step 1: Configure The Docker-Compose File**
+**Step 1: Clone the repository**
+	
+	git clone https://github.com/International-Data-Spaces-Association/metadata-broker-open-core.git
 
-Once this repository is cloned, the docker-compose file will be found in this path:
+**Step 2: Configure the docker-compose file**
+
+Once the repository is cloned, the docker-compose file will be found in this path:
 
 	<metadata-broker-open-coredocker/composefiles/Meta-Data-Broker/broker-localhost/docker-compose.yml >
 
@@ -90,7 +95,7 @@ The most crucial part of adapting the configuration is to provide the correct lo
 		- c:/etc/ids/cert:/etc/cert/
 		[…]
 
-**Step 2: Download The Docker Images**
+**Step 3: Download the docker images**
 
 All the IDS Metadata Broker Docker images are hosted at the GitLab of Fraunhofer IAIS. No credentials needed to download the images. The following command is for pulling all docker images:
 
@@ -99,7 +104,7 @@ All the IDS Metadata Broker Docker images are hosted at the GitLab of Fraunhofer
 Note that this command should be executed in the same path of docker-compose.yml file.
   
 
-**Step 3: Start Up The IDS Metadata Broker**
+**Step 4: Start up the IDS Metadata Broker**
 
 To start up the IDS Metadata Broker, run the following command inside the directory of the docker-compose.yml file:
 
@@ -112,15 +117,15 @@ This process can take several minutes to complete. You can test whether the IDS 
 Furthermore, the docker-compose logs command can be used to access the logs for a docker-compose.yml file, see [here](https://docs.docker.com/compose/reference/logs/).
 
 
-**Step 4: Stop The IDS Metadata Broker** 
+**Step 5: Stop the IDS Metadata Broker** 
 
 To stop the Broker, run the following in the terminal in the same path as the docker-compose.yml file:
 			
 		docker-compose down
 
-**Step 5: Update The IDS Metadata Broker**
+**Step 6: Update the IDS Metadata Broker**
 
-To update an existing installation of the IDS Metadata Broker, first repeat the steps explained in **Step 2**. Containers can be either hot updated or restarted to apply the changes. To hot update a container, run the following command:
+To update an existing installation of the IDS Metadata Broker, first repeat the steps explained in **Step 3**. Containers can be either hot updated or restarted to apply the changes. To hot update a container, run the following command:
 
 		docker-compose up -d --no-deps --build <container name>
 
@@ -131,16 +136,16 @@ Alternatively, one can restart the entire service by running:
 
 #### 4.2.2 Running The Broker With Locally Built Image
 You can also use a docker-compose file that uses locally built images. Please note that you need to have Maven installed for executing the script.  You can find a build script for the images in the docker directory: docker/buildImages.sh . 
-Once you have docker-compose file please follow **Step 3 - 4** in **Section 4.2.1** to run and stop the IDS Metadata Broker.
+Once you have docker-compose file please follow **Step 4 - 5** in **Section 4.2.1** to run and stop the IDS Metadata Broker.
 
-### 4.3 Interacting with the IDS Metadata Broker
+### 4.3 Interacting With The IDS Metadata Broker
 The IDS Metadata Broker accepts and sends messages according to the IDS information model. This model uses the Resource Description Framework (RDF) to leverage the power of linked data. Many examples about representations of IDS concepts can be found at [https://github.com/International-Data-Spaces-Association/InformationModel/tree/develop/examples](https://github.com/International-Data-Spaces-Association/InformationModel/tree/develop/examples).
 
 The multipart endpoint of IDS Metadata Broker is “/infrastructure”. If the IDS Metadata Broker is running using docker-compose as mentioned earlier, an HTTP POST request can be sent to interact with it. We provide some example messages, illustrating all core functions of the IDS Metadata Broker in this  [postman collection](https://www.getpostman.com/collections/1cecd0def2941a993e80).
 
 In addition to the multipart endpoint, the IDS Metadata Broker also serves a prototypical [IDS-REST](https://www.getpostman.com/collections/01d6bf596f67303c08ce) endpoint at “/catalog”. This endpoint will reach a non-prototype state soon after the final specification of the IDS-REST protocol.
 
-## API description
+## API Description
 
 see [Broker API in SwaggerHub](https://app.swaggerhub.com/apis/idsa/IDS-Broker/)
 

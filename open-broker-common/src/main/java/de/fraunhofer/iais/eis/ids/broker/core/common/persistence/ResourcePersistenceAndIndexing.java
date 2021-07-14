@@ -153,6 +153,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             if(!connectorUri.toString().startsWith(componentCatalogUri.toString())) {
                 connectorUri = SelfDescriptionPersistenceAndIndexing.rewriteConnectorUri(connectorUri);
                 logger.info("Rewrote connectorUri to " + connectorUri);
+                logger.info("Connector URI did not start with our component catalog URI: " + componentCatalogUri);
             }
             logger.info("Fetching catalog of connector");
             catalogUri = getConnectorCatalog(connectorUri);

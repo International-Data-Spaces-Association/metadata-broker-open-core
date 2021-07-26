@@ -4,7 +4,7 @@ This is an implementation of an International Data Spaces (IDS) Metadata Broker,
 
 ## 1. Purpose
 
-The goal of this implementation is to show how the concepts introduced in the [Handshake Document](https://industrialdataspace.jiveon.com/docs/DOC-1817#jive_content_id_Standard_Protocols_HTTPS_MQTT__TLS)(currently restricted to IDSA members) can be turned into an actual application. It, therefore, demonstrates the usage of the IDS Information Model for core communication tasks. More specifically, it shows:
+The goal of this implementation is to show how the concepts introduced in the [Handshake Document](https://industrialdataspace.jiveon.com/docs/DOC-1817#jive_content_id_Standard_Protocols_HTTPS_MQTT__TLS) (currently restricted to IDSA members) can be turned into an actual application. It, therefore, demonstrates the usage of the [IDS Information Model]() for core communication tasks. More specifically, it shows:
 
 * Implementation of the messaging interfaces for IDS infrastructure-level communication,
 * Information flow of typical interactions with the Broker
@@ -19,7 +19,7 @@ Security is currently supported in terms of TLS via a reverse proxy.
 
 [open-index-common](./open-index-common): Shared functionalities not only for [open-broker-common](./open-broker-common) but also for further IDS index services (for instance ParIS).
 
-[docker](./docker): Docker and DockerCompose files to deploy the IDS Metadata Broker.
+[docker](./docker): Docker ([installation guide](https://docs.docker.com/engine/install/)) and DockerCompose ([installation guide](https://docs.docker.com/compose/install/)) files to deploy the IDS Metadata Broker.
 
 ## 3. Prerequisites
 
@@ -33,11 +33,11 @@ In this section, we will provide some guidance as to recommendations for the num
 ### 3.2 Software
 
 - **OS**: We recommend using a Linux based operating system. However, any operating system with a Docker installation can be used (tested on Ubuntu 20.04 and Windows 10). More strict hardware requirements than listed above might apply if a non-Linux operating system is used.
-- **Docker**
-- **Docker compose**
-- **OpenSSL**: A valid X.509 certificate, signed by a trusted certification authority, is strongly recommended to avoid warnings about insecure HTTPS connections. Docker must be installed on the target machine.
+- **Docker**: version 20.10.7 or later
+- **Docker Compose**: version 1.29.1 or later
+- **OpenSSL**: Version 1.1.1k or later. A valid X.509 certificate, signed by a trusted certification authority, is strongly recommended to avoid warnings about insecure HTTPS connections. Docker must be installed on the target machine.
 - **Java**: Java 11 or later should be installed in your local environment to build the docker image.
-- **Maven**: Maven 3.6.3 or later should be installed in your local environment to build the docker image
+- **Maven**: Maven 3.6.3 or later should be installed in your local environment to build the docker image (execute `mvn -version` to check the successful installation).
 
 ## 4  Installation Guide
 This part aims to aid IT administrators or developers in the installation of the IDS Metadata Broker. Metadata Broker is still actively maintained by Fraunhofer IAIS. If any problem arises while following the installation guide, please get in touch with the email provided at the end of this file.
@@ -72,7 +72,7 @@ If you want to run the broker with the provided image please follow the followin
 
 Once the repository is cloned, the docker-compose file will be found in this path:
 
-	<metadata-broker-open-coredocker/composefiles/Meta-Data-Broker/broker-localhost/docker-compose.yml >
+	`./docker/composefiles/Meta-Data-Broker/broker-localhost/docker-compose.yml`
 
 
 
@@ -158,6 +158,7 @@ see [Broker API in SwaggerHub](https://app.swaggerhub.com/apis/idsa/IDS-Broker/)
 * [Spring Boot](https://projects.spring.io/spring-boot/) - Application Framework
 * [Apache Jena](https://jena.apache.org/documentation/) - Parsing and serializing RDF and Fuseki as triple store for meta data
 
-## Contact (Fraunhofer IAIS)
+## Contact
 
-* [email](mailto:contact@ids.fraunhofer.de)
+*  Fraunhofer IAIS: [email contact for support](mailto:contact@ids.fraunhofer.de)
+* or create an issue :-)

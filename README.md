@@ -72,7 +72,7 @@ If you want to run the broker with the provided image please follow the followin
 
 Once the repository is cloned, the docker-compose file will be found in this path:
 
-	`./docker/composefiles/Meta-Data-Broker/broker-localhost/docker-compose.yml`
+	`./docker/composefiles/broker-localhost/docker-compose.yml`
 
 
 

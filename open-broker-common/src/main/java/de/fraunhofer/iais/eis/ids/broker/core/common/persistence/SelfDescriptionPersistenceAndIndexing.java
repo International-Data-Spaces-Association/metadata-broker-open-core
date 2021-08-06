@@ -31,7 +31,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     private final ConnectorModelCreator connectorModelCreator = new ConnectorModelCreator();
 
     private final RepositoryFacade repositoryFacade;
-    private Indexing indexing;
+    private Indexing<InfrastructureComponent> indexing;
 
     private static URI componentCatalogUri;
 
@@ -42,7 +42,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      *
      * @param repositoryFacade repository (triple store) to which the modifications should be stored
      */
-    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri, Indexing indexing) {
+    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri, Indexing<InfrastructureComponent> indexing) {
         this.repositoryFacade = repositoryFacade;
         this.indexing = indexing;
         SelfDescriptionPersistenceAndIndexing.componentCatalogUri = componentCatalogUri;
@@ -60,7 +60,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
     }
 
-    public void setIndexing(Indexing indexing)
+    public void setIndexing(Indexing<InfrastructureComponent> indexing)
     {
         this.indexing = indexing;
     }
@@ -82,8 +82,14 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     public void refreshIndex() {
         //Recreate the index to delete everything
         try {
-            logger.info("Refreshing index.");
+            logger.info("Refreshing indices.");
             indexing.recreateIndex("registrations");
+
+            //If exists, recreate the separate resources index, too
+            try {
+                indexing.recreateIndex("resources");
+            }
+            catch (Exception ignored) {}
 
             List<String> activeGraphs = repositoryFacade.getActiveGraphs();
             if(activeGraphs.isEmpty()) //Nothing to index. Return here to make sure that in case no active graphs exist, inactive ones are also ignored

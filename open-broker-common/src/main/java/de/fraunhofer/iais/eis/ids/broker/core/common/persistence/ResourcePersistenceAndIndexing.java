@@ -1,5 +1,6 @@
 package de.fraunhofer.iais.eis.ids.broker.core.common.persistence;
 
+import de.fraunhofer.iais.eis.InfrastructureComponent;
 import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.Resource;
 import de.fraunhofer.iais.eis.ids.broker.core.common.impl.ResourcePersistenceAdapter;
@@ -33,7 +34,13 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     private final ResourceModelCreator resourceModelCreator = new ResourceModelCreator();
 
     private static RepositoryFacade repositoryFacade;
-    private Indexing indexing = new NullIndexing();
+
+    //Note that adding a resource is done as follows:
+    //1) Find the connector containing the resource
+    //2) Add the resource to the catalog of this connector
+    //3) Re-index the connector. While doing so, also update resource index
+    //For this reason, this indexing is not of type Resource, but InfrastructureComponent (i.e. Connector + X)
+    private Indexing<InfrastructureComponent> indexing = new NullIndexing<>();
 
     private final URI componentCatalogUri;
 
@@ -54,7 +61,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      * Setter for the indexing method
      * @param indexing indexing to be used
      */
-    public void setIndexing(Indexing indexing) {
+    public void setIndexing(Indexing<InfrastructureComponent> indexing) {
         this.indexing = indexing;
     }
 
@@ -153,6 +160,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             if(!connectorUri.toString().startsWith(componentCatalogUri.toString())) {
                 connectorUri = SelfDescriptionPersistenceAndIndexing.rewriteConnectorUri(connectorUri);
                 logger.info("Rewrote connectorUri to " + connectorUri);
+                logger.info("Connector URI did not start with our component catalog URI: " + componentCatalogUri);
             }
             logger.info("Fetching catalog of connector");
             catalogUri = getConnectorCatalog(connectorUri);

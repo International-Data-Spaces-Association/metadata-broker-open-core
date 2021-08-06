@@ -28,7 +28,7 @@ public class RdfPersistenceTest {
     public void setUp() {
         repositoryFacade = new RepositoryFacade();
         try {
-            persistence = new SelfDescriptionPersistenceAndIndexing(repositoryFacade, new URI("http://localhost:8080/connectors/"), new NullIndexing());
+            persistence = new SelfDescriptionPersistenceAndIndexing(repositoryFacade, new URI("http://localhost:8080/connectors/"), new NullIndexing<>());
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }

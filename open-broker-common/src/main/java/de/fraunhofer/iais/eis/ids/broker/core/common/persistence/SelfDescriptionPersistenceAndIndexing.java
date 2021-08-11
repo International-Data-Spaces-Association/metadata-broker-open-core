@@ -406,4 +406,6 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     public String getResults(String queryString) throws RejectMessageException {
         return new GenericQueryEvaluator(repositoryFacade).getResults(queryString);
     }
+
+	
 }

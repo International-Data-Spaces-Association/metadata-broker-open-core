@@ -1,12 +1,12 @@
 package de.fraunhofer.iais.eis.ids.broker.core.common.persistence;
 
-import de.fraunhofer.iais.eis.RejectionReason;
-import de.fraunhofer.iais.eis.Resource;
-import de.fraunhofer.iais.eis.ids.broker.core.common.impl.ResourcePersistenceAdapter;
-import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
-import de.fraunhofer.iais.eis.ids.index.common.persistence.*;
-import de.fraunhofer.iais.eis.ids.index.common.persistence.spi.Indexing;
-import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import org.apache.jena.query.ParameterizedSparqlString;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.rdf.model.Model;
@@ -17,14 +17,16 @@ import org.apache.jena.sparql.ARQException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import java.io.IOException;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import de.fraunhofer.iais.eis.RejectionReason;
+import de.fraunhofer.iais.eis.Resource;
+import de.fraunhofer.iais.eis.ids.broker.core.common.impl.ResourcePersistenceAdapter;
+import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.GenericQueryEvaluator;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.JsonLdContextFetchStrategy;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.NullIndexing;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.RepositoryFacade;
+import de.fraunhofer.iais.eis.ids.index.common.persistence.spi.Indexing;
+import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
 
 /**
  * This class takes care of persisting and indexing any changes to resources that are announced to the broker
@@ -101,7 +103,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      * @return true, if the resource is known to the broker AND the connector holding the resource is non-passivated and non-deleted
      * @throws RejectMessageException if an internal error occurs
      */
-    @Override
+   
+	@Override
     public boolean resourceExists(URI resourceUri) throws RejectMessageException {
         try {
             List<String> activeGraphs = repositoryFacade.getActiveGraphs();
@@ -118,6 +121,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
                     .append("?res a ids:Resource ; ").append("?p ?o . } }");
             ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString(queryString.toString());
             //Replace variable securely
+            System.out.println("RESOURCEURI"+resourceUri.toString());
             parameterizedSparqlString.setIri("res", resourceUri.toString());
 
             return repositoryFacade.booleanQuery(parameterizedSparqlString.toString());
@@ -164,6 +168,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         }
         if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
             connectorUri = URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
+            logger.info("Connector Uri",connectorUri);
             if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
                 throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not actively registered at this broker. Cannot update resource for this connector."));
             }
@@ -174,6 +179,11 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         //Try to remove the resource from Triple Store if it exists, so that it is updated properly.
         if (resourceExists(resource.getId())) {
             logger.info("Resource already exists. Removing");
+            removeFromTriplestore(resource.getId(), connectorUri);
+        }
+        //if a resource exists and its connectorUri is not null, ideaööy only resource should be removed here
+        if (resourceExists(resource.getId()) && connectorUri!=null)   {
+            logger.info("Resource does not belong to any connector, ConnectorUri for resource is null");
             removeFromTriplestore(resource.getId(), connectorUri);
         }
 
@@ -188,7 +198,9 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         return resource.getId();
     }
 
-    static URI tryGetRewrittenResourceUri(URI connectorUri, URI resourceUri) throws RejectMessageException {
+    
+
+	static URI tryGetRewrittenResourceUri(URI connectorUri, URI resourceUri) throws RejectMessageException {
         //Cannot do this as parameterised SPARQL query, as the connector URI is not bound to a variable, but to the FROM clause instead
         ParameterizedSparqlString pss = new ParameterizedSparqlString();
         String queryString = "PREFIX ids: <https://w3id.org/idsa/core/> SELECT ?uri FROM NAMED <" + connectorUri.toString() + "> WHERE { GRAPH ?g { ?uri a ids:Resource . FILTER regex( str(?uri), \"" + resourceUri.hashCode() + "\" ) } } ";
@@ -219,6 +231,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector from which you are trying to sign off a resource was not found or is not active."));
         }
         if(!resourceExists(resourceUri)) {
+        	logger.info("ConnectorUri to be removed",connectorUri);
             resourceUri = tryGetRewrittenResourceUri(connectorUri, resourceUri);
         }
         removeFromTriplestore(resourceUri, connectorUri);
@@ -309,4 +322,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         }
 
     }
+
+	
+
+	
 }

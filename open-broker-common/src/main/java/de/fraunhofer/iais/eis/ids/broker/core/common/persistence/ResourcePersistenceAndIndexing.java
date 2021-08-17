@@ -182,7 +182,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             removeFromTriplestore(resource.getId(), connectorUri);
         }
         //if a resource exists and its connectorUri is not null, ideaööy only resource should be removed here
-        if (resourceExists(resource.getId()) && connectorUri!=null)   {
+        if (resourceExists(resource.getId()) && !(connectorUri == null))   {
             logger.info("Resource does not belong to any connector, ConnectorUri for resource is null");
             removeFromTriplestore(resource.getId(), connectorUri);
         }

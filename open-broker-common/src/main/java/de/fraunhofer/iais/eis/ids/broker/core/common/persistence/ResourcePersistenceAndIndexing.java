@@ -122,7 +122,16 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             queryString.append("WHERE { GRAPH ?g { ")
                     //Instead of binding the value here, use the more secure parameter binding of parameterized sparql strings
                     //.append("BIND(<").append(resourceUri.toString()).append("> AS ?res) . ")
-                    .append("?res a ids:Resource ; ").append("?p ?o . } }");
+                       .append("{ ?res a ids:Resource . }"
+                               + " UNION { ?res a ids:TextResource . }"
+                               + " UNION { ?res a ids:AppResource . }"
+                               + " UNION { ?res a ids:DataResource . } \n"
+                               + "  UNION { ?res a ids:AudioResource . } \n"
+                               + "  UNION { ?res a ids:ImageResource . } \n"
+                               + "  UNION { ?res a ids:VideoResource . } \n"
+                               + "  UNION { ?res a ids:SoftwareResource . }").append("?res ?p ?o . } }");
+
+
             ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString(queryString.toString());
             //Replace variable securely
             parameterizedSparqlString.setIri("res", resourceUri.toString());

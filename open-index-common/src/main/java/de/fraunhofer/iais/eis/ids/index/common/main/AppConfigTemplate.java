@@ -26,7 +26,7 @@ public abstract class AppConfigTemplate {
     public SelfDescriptionProvider selfDescriptionProvider;
 
     //Try to find some indexing on classpath. If not present, use Null Indexing
-    public Indexing indexing = ServiceLoader.load(Indexing.class).findFirst().orElse(new NullIndexing());
+    public Indexing indexing = ServiceLoader.load(Indexing.class).findFirst().orElse(new NullIndexing<>());
     public SecurityTokenProvider securityTokenProvider = new SecurityTokenProvider() {
         @Override
         public String getSecurityToken() {

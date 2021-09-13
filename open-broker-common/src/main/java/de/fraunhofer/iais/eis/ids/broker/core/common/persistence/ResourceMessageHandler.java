@@ -71,12 +71,12 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
 
                 if (msg.getAffectedResource() != null && messageAndPayload.getPayload().isPresent()) {
                 	
-                	 logger.info(issueAt.getYear()+":"+issueAt.getMonth()+ ":"+ issueAt.getDay()+":"+issueAt.getHour()+":"+ issueAt.getMinute());
-                     logger.info("Component ID :"+ infrastructureComponent.getId());
-                     logger.info("Maintainer :"+ infrastructureComponent.getMaintainer());
-                     logger.info("Incoming message with ID :"+ messageAndPayload.getMessage().getId());
-                     logger.info("Issuer Connector :"+ messageAndPayload.getMessage().getIssuerConnector());
-                     logger.info("Sender Connector :"+ messageAndPayload.getMessage().getSenderAgent());
+//                	 logger.info(issueAt.getYear()+":"+issueAt.getMonth()+ ":"+ issueAt.getDay()+":"+issueAt.getHour()+":"+ issueAt.getMinute());
+//                     logger.info("Component ID :"+ infrastructureComponent.getId());
+//                     logger.info("Maintainer :"+ infrastructureComponent.getMaintainer());
+//                     logger.info("Incoming message with ID :"+ messageAndPayload.getMessage().getId());
+//                     logger.info("Issuer Connector :"+ messageAndPayload.getMessage().getIssuerConnector());
+//                     logger.info("Sender Connector :"+ messageAndPayload.getMessage().getSenderAgent());
                 	
                     //TODO: Check if method is POST and, if so, if Resource already exists
                     if(messageAndPayload.getMessage().getProperties() != null) {
@@ -92,14 +92,10 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
                                     	throw new RejectMessageException(RejectionReason.TOO_MANY_RESULTS, new Exception("The resource you are trying to post already exists. To update it, use PUT instead."));
                                     }
                                 }
-                                catch (RejectMessageException ignored)
+                                catch (RejectMessageException e)
                                 {
-                                	logger.error("Message could not be processed.");
-                                    logger.error("Resource doesnt exist, hence persisting and indexing of the modified resource failed.");
-                                    logger.error("Error occured due to ", ignored.getCause());
-                                    logger.error("Class causing error ", ignored.getCause().getClass());
-                                    logger.error(" ", ignored.getMessage());
-                                
+                                	logger.info("New resource registered");
+
                                     //RejectMessageException is thrown by ResourcePersistenceAndIndexing.tryGetRewrittenResourceUri, in case the resource does not exist
                                     //This may very well happen here, particularly if the resources is posted correctly (i.e. didn't exist before)
                                 }
@@ -138,9 +134,10 @@ public class ResourceMessageHandler extends ValidatingMessageHandler<ResourceMAP
         try {
             //No Exception occurred. Send MessageProcessedNotificationMessage
             DefaultSuccessMAP returnValue = new DefaultSuccessMAP(infrastructureComponent.getId(), infrastructureComponent.getOutboundModelVersion(), messageAndPayload.getMessage().getId(), securityTokenProvider.getSecurityTokenAsDAT(), responseSenderAgent);
-            logger.info("Component ID :"+ infrastructureComponent.getId().toString());
-            logger.info("Maintainer :"+ infrastructureComponent.getMaintainer());
-            logger.info("Incoming message with ID :"+ messageAndPayload.getMessage().getId());
+//Log incoming message via a central logger function.
+//            logger.info("Component ID :"+ infrastructureComponent.getId().toString());
+//            logger.info("Maintainer :"+ infrastructureComponent.getMaintainer());
+//            logger.info("Incoming message with ID :"+ messageAndPayload.getMessage().getId());
             if(rewrittenUri != null)
             {
                 //Attach the rewritten URI to the response, so that the recipient knows under which address the resource can be found

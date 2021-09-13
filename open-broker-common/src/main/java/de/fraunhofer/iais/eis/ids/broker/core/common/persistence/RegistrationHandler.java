@@ -131,7 +131,7 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
                 }
             }
             //Some unknown error has occurred, returning an internal error
-            logger.error("Internal Recipient Error ");
+            logger.error("Internal Recipient Error "+ RejectionReason.INTERNAL_RECIPIENT_ERROR);
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
 
@@ -143,8 +143,7 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
                     messageAndPayload.getMessage().getId(),
                     securityTokenProvider.getSecurityTokenAsDAT(),
                     responseSenderUri);
-            logger.info(" Id "+ messageAndPayload.getMessage().getId().toString());
-            logger.info("  Connector ID"+infrastructureComponent.getId().toString());
+
             if(rewrittenUri != null)
             {
                 //Attach the rewritten URI to the response, so that the recipient knows under which address the resource can be found

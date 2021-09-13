@@ -355,7 +355,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         	indexing.add(infrastructureComponent);
         }
         //return the (rewritten) URI of the infrastructure component
-        logger.info("The rewritten URI of the " +infrastructureComponent+" " + infrastructureComponent.getId().toString());
+        logger.info("The rewritten URI of the "  + infrastructureComponent.getId().toString());
        
         return infrastructureComponent.getId();
     }

@@ -248,6 +248,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         }
         removeFromTriplestore(resourceUri, connectorUri);
         indexing.update(repositoryFacade.getConnectorFromTripleStore(connectorUri));
+        indexing.delete(resourceUri);
     }
 
     /**

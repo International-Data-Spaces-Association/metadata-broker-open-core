@@ -91,7 +91,7 @@ public class RepositoryFacade {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
             return RDFConnectionFactory.connectFuseki(sparqlUrl);
             //return RDFConnectionFactory.connectFuseki(sparqlUrl);
-        }
+        } else
         if(dataset == null)
         {
             dataset = DatasetFactory.create();

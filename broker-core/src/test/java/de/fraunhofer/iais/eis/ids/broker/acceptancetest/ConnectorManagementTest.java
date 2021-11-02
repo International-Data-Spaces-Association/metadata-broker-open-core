@@ -49,8 +49,8 @@ public class ConnectorManagementTest {
         connectorAvailable =  new ConnectorUpdateMessageBuilder()
                 ._issued_(CalendarUtil.now())
                 ._modelVersion_("3.0.0-SNAPSHOT")
-                ._issuerConnector_(dummyUri())
-                ._affectedConnector_(dummyUri())
+                ._issuerConnector_(new URI("http://example.org/connector1"))
+                ._affectedConnector_(new URI("http://example.org/connector1"))
                 ._securityToken_(dummyToken)
                 ._senderAgent_(new URI("http://example.org/agent/"))
                 .build();
@@ -58,8 +58,8 @@ public class ConnectorManagementTest {
         connectorUnavailable = new ConnectorUnavailableMessageBuilder()
                 ._issued_(CalendarUtil.now())
                 ._modelVersion_("3.0.0-SNAPSHOT")
-                ._issuerConnector_(dummyUri())
-                ._affectedConnector_(dummyUri())
+                ._issuerConnector_(new URI("http://example.org/connector1"))
+                ._affectedConnector_(new URI("http://example.org/connector1"))
                 ._securityToken_(dummyToken)
                 ._senderAgent_(new URI("http://example.org/agent/"))
                 .build();
@@ -68,16 +68,16 @@ public class ConnectorManagementTest {
         configChange = new ConnectorUpdateMessageBuilder()
                 ._issued_(CalendarUtil.now())
                 ._modelVersion_("3.0.0-SNAPSHOT")
-                ._issuerConnector_(dummyUri())
-                ._affectedConnector_(dummyUri())
+                ._issuerConnector_(new URI("http://example.org/connector1"))
+                ._affectedConnector_(new URI("http://example.org/connector1"))
                 ._securityToken_(dummyToken)
                 ._senderAgent_(new URI("http://example.org/agent/"))
                 .build();
 
-        connector = new BaseConnectorBuilder(dummyUri())
+        connector = new BaseConnectorBuilder(new URI("http://example.org/connector1"))
                 ._title_(new ArrayList<>(asList(new TypedLiteral("DWD Open Data Connector", "en"))))
-                ._curator_(dummyUri())
-                ._maintainer_(dummyUri())
+                ._curator_(new URI("http://example.org/participant1"))
+                ._maintainer_(new URI("http://example.org/participant1"))
                 ._outboundModelVersion_("3.0.0")
                 ._inboundModelVersion_(asList("3.0.0"))
                 ._resourceCatalog_(asList(new ResourceCatalogBuilder().build()))
@@ -88,7 +88,7 @@ public class ConnectorManagementTest {
         brokerQuery = new QueryMessageBuilder()
                 ._issued_(CalendarUtil.now())
                 ._modelVersion_("3.0.0-SNAPSHOT")
-                ._issuerConnector_(dummyUri())
+                ._issuerConnector_(new URI("http://example.org/connector1"))
                 ._securityToken_(dummyToken)
                 ._senderAgent_(new URI("http://example.org/agent/"))
                 .build();
@@ -116,14 +116,6 @@ public class ConnectorManagementTest {
         return registrationResponse.getHeader();
     }
 
-    private URI dummyUri() {
-        try {
-            return new URL("http://example.org/").toURI();
-        }
-        catch (MalformedURLException | URISyntaxException e) {
-            return null;
-        }
-    }
 
     //@Test
     public void unregister() throws JSONException, IOException {

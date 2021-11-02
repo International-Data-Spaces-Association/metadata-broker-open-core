@@ -301,14 +301,62 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         }
         //Grab "all" information about a Resource. This includes everything pointing at a resource as well as all child objects of a resource, up to a (rather arbitrary) depth of 7
         ParameterizedSparqlString queryString = new ParameterizedSparqlString("CONSTRUCT { ?res ?p ?o . ?o ?p2 ?o2 . ?o2 ?p3 ?o3 . ?o3 ?p4 ?o4 . ?o4 ?p5 ?o5 . ?o5 ?p6 ?o6 . ?o6 ?p7 ?o7 . ?s ?p ?res . } " +
-                        "WHERE { " +
+                    "WHERE { " +
                         //We already ensured that this graph is active
                         //"BIND(<" + connectorUri.toString() + "> AS ?g) . " +
                         //"BIND(<" + resourceUri.toString() + "> AS ?res) . " +
-                        "GRAPH ?g { { ?res ?p ?o . OPTIONAL { ?o ?p2 ?o2 . OPTIONAL { ?o2 ?p3 ?o3 . OPTIONAL { ?o3 ?p4 ?o4 . OPTIONAL { ?o4 ?p5 ?o5 . OPTIONAL { ?o5 ?p6 ?o6 . OPTIONAL { ?o6 ?p7 ?o7 . } } } } } } } " +
-                        "UNION " +
-                        "{ ?s ?p ?res . }" +
-                        "} }");
+                        "GRAPH ?g { " +
+//                        "{ ?res ?p ?o . " +
+//                            "OPTIONAL { ?o ?p2 ?o2 . " +
+//                                "" +
+//                                "OPTIONAL { ?o2 ?p3 ?o3 . " +
+//                                    "OPTIONAL { ?o3 ?p4 ?o4 . " +
+//                                        "OPTIONAL { ?o4 ?p5 ?o5 . " +
+//                                            "OPTIONAL { ?o5 ?p6 ?o6 . " +
+//                                                "OPTIONAL { ?o6 ?p7 ?o7 . " +
+//                                                "} " +
+//                                            "} " +
+//                                        "} " +
+//                                    "} " +
+//                                "} " +
+//                            "} " +
+//                        "} " +
+//                        "UNION " +
+//                        "{ ?s ?p ?res . }" +
+
+
+                        "{ ?res ?p ?o . " +
+                            "OPTIONAL { ?o ?p2 ?o2 . " +
+                            "FILTER(?count = 1) "+ // more incoming triples means the respective entity ?o is used by other parts --> do not delete it as the other entity needs it.
+                            "{SELECT (COUNT(DISTINCT ?a) AS ?count) ?o WHERE {" +
+                                "?a ?p_other ?o ."+
+                            "} GROUP BY ?o"+
+                            "}"+
+                            "OPTIONAL { ?o2 ?p3 ?o3 ."+
+                                "FILTER(?count2 = 1)"+
+                                "{SELECT (COUNT(DISTINCT ?b) AS ?count2) ?o2 WHERE {"+
+                                    "?b ?p2_other ?o2 ."+
+                                "} GROUP BY ?o2"+
+                                "}"+
+                                "OPTIONAL { ?o3 ?p4 ?o4 ."+
+                                    "FILTER(?count3 = 1)"+
+                                    "{SELECT (COUNT(DISTINCT ?c) AS ?count3) ?o3 WHERE {"+
+                                        "?c ?p3_other ?o3 ."+
+                                    "} GROUP BY ?o3"+
+                                    "}"+
+                                    "OPTIONAL { ?o4 ?p5 ?o5 ."+
+                                        "FILTER(?count4 = 1)"+
+                                        "{SELECT (COUNT(DISTINCT ?d) AS ?count4) ?o4 WHERE {"+
+                                          "?d ?p4_other ?o4 ."+
+                                        "} GROUP BY ?o4"+
+                                        "}"+
+                                    "}"+
+                                "}"+
+                            "}"+
+                        "}"+
+                    "}"+
+                "}"+
+            "}");
         queryString.setIri("g", connectorUri.toString());
         queryString.setIri("res", resourceUri.toString());
         try {

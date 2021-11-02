@@ -28,7 +28,7 @@ public interface ResourceStatusHandler {
          * @throws IOException may be thrown, if the connection to the repository could not be established
          * @throws RejectMessageException may be thrown, if the update is not permitted, e.g. because the resource of an inactive connector is modified, or if an internal error occurs
          */
-        URI updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException;
+        public URI updated(Resource resource, URI connectorUri) throws IOException, RejectMessageException;
 
         /**
          * Function to check whether a resource with a given URI exists

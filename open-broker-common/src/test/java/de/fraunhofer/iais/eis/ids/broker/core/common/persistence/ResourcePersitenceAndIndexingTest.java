@@ -90,15 +90,6 @@ public class ResourcePersitenceAndIndexingTest {
 
 
     @Test
-    public void testDeleteWithSideEffects() {
-
-        logger.debug(model.toString());
-
-
-
-    }
-
-    @Test
     @Disabled
     public void removingBehaviorResourcePersistenceAndIndexingTest() throws IOException, RejectMessageException, URISyntaxException {
 

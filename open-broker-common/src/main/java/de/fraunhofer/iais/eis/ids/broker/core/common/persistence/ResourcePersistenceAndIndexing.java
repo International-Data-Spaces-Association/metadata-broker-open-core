@@ -352,11 +352,10 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
                                         "}"+
                                     "}"+
                                 "}"+
-                            "}"+
-                            "UNION " +
-                            "{ ?s ?p ?res . }" +
                         "}"+
                     "}"+
+                "}"+
+                "UNION { ?s ?p ?res . }" +
                 "}"+
             "}");
         queryString.setIri("g", connectorUri.toString());

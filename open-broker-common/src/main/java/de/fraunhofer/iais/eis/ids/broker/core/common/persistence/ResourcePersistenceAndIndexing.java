@@ -353,6 +353,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
                                     "}"+
                                 "}"+
                             "}"+
+                            "UNION " +
+                            "{ ?s ?p ?res . }" +
                         "}"+
                     "}"+
                 "}"+

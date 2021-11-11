@@ -334,21 +334,22 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
             logger.info("Updating a connector which is already known to the broker: " + infrastructureComponent.getId().toString());
             updateTriplestore(infrastructureComponent.toRdf());
         }
+        Connector reducedConnector = repositoryFacade.getReducedConnector(connectorUri);
         //We need to reflect the changes in the index.
         //If the connector was passive before, the document was deleted from the index, so we need to recreate it
         if (wasActive) { //Connector exists in index - update it
             try {
-                indexing.update(infrastructureComponent);
+                indexing.update(reducedConnector);
             } catch (Exception e) {
                 if (e.getMessage().contains("document_missing_exception")) {
-                    indexing.add(infrastructureComponent);
+                    indexing.add(reducedConnector);
                 } else {
                     logger.error("ElasticsearchStatusException caught with message " + e.getMessage());
                     throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
                 }
             }
         } else { //Connector does not exist in index - create it
-            indexing.add(infrastructureComponent);
+            indexing.add(reducedConnector);
         }
         //return the (rewritten) URI of the infrastructure component
         return infrastructureComponent.getId();

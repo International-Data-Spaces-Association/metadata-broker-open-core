@@ -207,7 +207,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
-        indexing.update(repositoryFacade.getConnectorFromTripleStore(connectorUri));
+        indexing.update(repositoryFacade.getReducedConnector(connectorUri));
 
         //Return the updated resource URI
         return resource.getId();

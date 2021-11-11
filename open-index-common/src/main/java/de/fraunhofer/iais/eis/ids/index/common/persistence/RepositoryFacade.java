@@ -38,6 +38,36 @@ public class RepositoryFacade {
 
     private static boolean writableConnectionWarningPrinted = false;
 
+    private static final String CONNECTOR_QUERY_HATEOS = "PREFIX ids: <https://w3id.org/idsa/core/> \n"
+                                                         + "PREFIX owl: <http://www.w3.org/2002/07/owl#>\n"
+                                                         + "\n"
+                                                         + "CONSTRUCT { \n"
+                                                         + "  ?s0 ?p0 ?o0 . \n"
+                                                         + "  ?o0 ?p1 ?o1 . \n"
+                                                         + "} \n"
+                                                         + "WHERE {  \n"
+                                                         + "  GRAPH <%1$s> {\n"
+                                                         + "    { <%1$s> ?p0 ?o0 . } \n"
+                                                         + "    UNION \n"
+                                                         + "    { ?s owl:sameAs <%1$s> ; ?p0 ?o0 . }\n"
+                                                         + "    \n"
+                                                         + "    BIND ( IF (BOUND(?s), ?s, <%1$s>) AS ?s0) .\n"
+                                                         + "    OPTIONAL { ?o0 ?p1 ?o1 \n"
+                                                         + "              \n"
+                                                         + "      OPTIONAL { \n"
+                                                         + "        { # ?o1 should be an ids:Resource, and only a certain amount shall be returned\n"
+                                                         + "          SELECT (?o1 AS ?res) WHERE { GRAPH <%1$s> {\n"
+                                                         + "              \n"
+                                                         + "                { ?o1 a ids:Resource } UNION { ?o1 a ids:DataResource } UNION { ?o1 a ids:TextResource } UNION { ?o1 a ids:AudioResource } UNION { ?o1 a ids:ImageResource } UNION { ?o1 a ids:VideoResource } UNION { ?o1 a ids:SoftwareResource } UNION { ?o1 a ids:AppResource }\n"
+                                                         + "              \n"
+                                                         + "            }}\n"
+                                                         + "        }\n"
+                                                         + "        FILTER ( ?o1 = ?res ) .\n"
+                                                         + "      }\n"
+                                                         + "    } \n"
+                                                         + "  } \n"
+                                                         + "}";
+
     /**
      * Default constructor, creating a local in-memory repository
      */
@@ -374,6 +404,40 @@ public class RepositoryFacade {
         ParameterizedSparqlString queryString = new ParameterizedSparqlString("CONSTRUCT { ?s ?p ?o . }" +
                 "WHERE { GRAPH ?g { ?s ?p ?o . } } ");
         queryString.setIri("g", connectorUri.toString());
+        try {
+            Model result = constructQuery(queryString.toString());
+
+            //Check if response is empty
+            if (result.isEmpty()) {
+                //Result is empty, throw exception. This will result in a RejectionMessage being sent
+                throw new RejectMessageException(RejectionReason.NOT_FOUND);
+            }
+
+            //Generate a connector object from the SPARQL result string (already containing the new resource!). This is a bit of a messy business
+            return ConstructQueryResultHandler.GraphQueryResultToConnector(result);
+        }
+        catch (ARQException e)
+        {
+            logger.warn("Potential SPARQL injection attack detected.", e);
+            throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+        }
+    }
+
+    /**
+     * Utility function to obtain an IDS Connector object from the triple store
+     * @param connectorUri The URI of the connector to be obtained
+     * @return an IDS connector object with the requested connectorUri, if it is known to the broker
+     * @throws RejectMessageException if the connector is not known to the broker, or if the parsing fails
+     */
+    public Connector getReducedConnector(URI connectorUri) throws RejectMessageException {
+        logger.info("Getting reduced Connector" + connectorUri);
+        if(!graphIsActive(connectorUri.toString()))
+        {
+            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not known to this broker or unavailable."));
+        }
+        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS, connectorUri);
+        //Fire the query against our repository
+        ParameterizedSparqlString queryString = new ParameterizedSparqlString(rawQueryString);
         try {
             Model result = constructQuery(queryString.toString());
 

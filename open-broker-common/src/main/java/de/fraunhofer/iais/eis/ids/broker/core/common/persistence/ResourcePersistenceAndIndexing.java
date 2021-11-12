@@ -1,5 +1,6 @@
 package de.fraunhofer.iais.eis.ids.broker.core.common.persistence;
 
+import de.fraunhofer.iais.eis.Connector;
 import de.fraunhofer.iais.eis.InfrastructureComponent;
 import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.Resource;
@@ -207,14 +208,16 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
-        indexing.update(repositoryFacade.getReducedConnector(connectorUri));
+        Connector connector = repositoryFacade.getConnectorFromTripleStore(connectorUri);
+        indexing.updateResource(connector, resource);
+        indexing.update(connector);
 
         //Return the updated resource URI
         return resource.getId();
     }
 
     static URI tryGetRewrittenResourceUri(URI connectorUri, URI resourceUri) throws RejectMessageException {
-        //Cannot do this as parameterised SPARQL query, as the connector URI is not bound to a variable, but to the FROM clause instead
+        //Cannot do this as parameterised SPARQL query, as the connector URI is not  bound to a variable, but to the FROM clause instead
         ParameterizedSparqlString pss = new ParameterizedSparqlString();
         String queryString = "PREFIX ids: <https://w3id.org/idsa/core/> SELECT ?uri FROM NAMED <" + connectorUri.toString() + "> WHERE { GRAPH ?g { ?uri a ids:Resource . FILTER regex( str(?uri), \"" + resourceUri.hashCode() + "\" ) } } ";
         ArrayList<QuerySolution> solution = repositoryFacade.selectQuery(queryString);

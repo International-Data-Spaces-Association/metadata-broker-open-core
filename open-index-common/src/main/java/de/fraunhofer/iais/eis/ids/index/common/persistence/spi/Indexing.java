@@ -3,6 +3,9 @@ package de.fraunhofer.iais.eis.ids.index.common.persistence.spi;
 import java.io.IOException;
 import java.net.URI;
 
+import de.fraunhofer.iais.eis.Connector;
+import de.fraunhofer.iais.eis.Resource;
+
 /**
  * Interface for providing indexing functionality for infrastructure components and participants
  * Note that Resources are handled by the ResourceStatusHandler instead, as it is broker specific and not common with the ParIS
@@ -22,6 +25,14 @@ public interface Indexing<T> {
      * @throws IOException may be thrown if the infrastructure component could not be updated, e.g. because it was not found
      */
     void update(T object) throws IOException;
+
+    /**
+     * Function for updating an resource in the index
+     * @param reducedConnector Connector with resources as list of URIs
+     * @param resource Resource to be indexed
+     * @throws IOException may be thrown if the infrastructure component could not be updated, e.g. because it was not found
+     */
+    void updateResource( Connector reducedConnector, Resource resource ) throws IOException;
 
     /**
      * Function for removing an indexed infrastructure component OR participant from the index

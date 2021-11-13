@@ -208,7 +208,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
-        Connector connector = repositoryFacade.getConnectorFromTripleStore(connectorUri);
+        Connector
+                connector = repositoryFacade.getReducedConnector(connectorUri);
         indexing.updateResource(connector, resource);
         indexing.update(connector);
 
@@ -355,9 +356,10 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
                                         "}"+
                                     "}"+
                                 "}"+
-                            "}"+
                         "}"+
                     "}"+
+                "}"+
+                "UNION { ?s ?p ?res . }" +
                 "}"+
             "}");
         queryString.setIri("g", connectorUri.toString());

@@ -172,16 +172,18 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
                 logger.info("Rewrote connectorUri to " + connectorUri);
                 logger.info("Connector URI did not start with our component catalog URI: " + componentCatalogUri);
             }
-            logger.info("Fetching catalog of connector");
+            logger.info("Fetching catalog of connector"); long start = System.currentTimeMillis();
             catalogUri = getConnectorCatalog(connectorUri);
-            logger.info("Catalog found. URI: " + catalogUri);
+            logger.info("Catalog found ("+(System.currentTimeMillis()-start)+" ms). URI: " + catalogUri);
 
             //Rewrite resource
+            logger.info("Serialize rewritten Resource"); start = System.currentTimeMillis();
             SelfDescriptionPersistenceAndIndexing.replacedIds = new HashMap<>(); //Clear the map tracking all URIs that were replaced
             resource = new Serializer().deserialize( //Parse to Java Class
                     SelfDescriptionPersistenceAndIndexing.addSameAsStatements( //Add owl:sameAs statements for all URIs we are replacing
                             SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri)), //Replace URIs
                     Resource.class); //Result of parsing should be a Resource
+            logger.info("Serialized Resource ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
         } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
@@ -199,19 +201,32 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
 
         //Try to remove the resource from Triple Store if it exists, so that it is updated properly.
         if (resourceExists(resource.getId())) {
-            logger.info("Resource already exists. Removing");
+            logger.info("Resource already exists. Removing"); long start = System.currentTimeMillis();
             removeFromTriplestore(resource.getId(), connectorUri);
+            logger.info("Removed Resource ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
         }
 
         try {
+            logger.info("Adding Resource to the TripleStore. URI: " + resource.getId()); long start = System.currentTimeMillis();
             addToTriplestore(resource, connectorUri, catalogUri);
+            logger.info("Added to the TripleStore ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
         } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
+
+        logger.info("Retrieving Reduced Connector. URI: " + connectorUri); long start = System.currentTimeMillis();
         Connector
                 connector = repositoryFacade.getReducedConnector(connectorUri);
+        logger.info("Retrieved the Reduced Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
+
+        logger.info("Adding Resource to the Resources Index. URI: " + resource.getId()); start = System.currentTimeMillis();
         indexing.updateResource(connector, resource);
+        logger.info("Finished adding to the Resources Index ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
+
+
+        logger.info("Adding Connector to the Connector Index. URI: " + connector.getId()); start = System.currentTimeMillis();
         indexing.update(connector);
+        logger.info("Finished adding to the Connector Index ("+(System.currentTimeMillis()-start)+" ms). URI: " + connector.getId());
 
         //Return the updated resource URI
         return resource.getId();

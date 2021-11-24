@@ -43,6 +43,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     //For this reason, this indexing is not of type Resource, but InfrastructureComponent (i.e. Connector + X)
     private Indexing<InfrastructureComponent> indexing = new NullIndexing<>();
 
+    private int maxNumberOfIndexedConnectorResources;
+
     private final URI componentCatalogUri;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -51,10 +53,17 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     /**
      * Constructor
      * @param repositoryFacade repository (triple store) to which the modifications should be stored
+     * @param componentCatalogUri The BaseURL of the catalog URI what shall be used
+     * @param maxNumberOfIndexedConnectorResources the maximum number of resources that will be added to the
+     *                                             'registrations' index (the one for the connectors) high numbers
+     *                                             drastically decrease the performance when a new resource is registered.
+     *                                             recommended: 10 to 100
      */
-    public ResourcePersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri) {
+    public ResourcePersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri,
+                                          int maxNumberOfIndexedConnectorResources) {
         ResourcePersistenceAndIndexing.repositoryFacade = repositoryFacade;
         this.componentCatalogUri = componentCatalogUri;
+        this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
         Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
     }
 
@@ -214,15 +223,15 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
 
-        logger.info("Retrieving Reduced Connector. URI: " + connectorUri); long start = System.currentTimeMillis();
-        Connector
-                connector = repositoryFacade.getReducedConnector(connectorUri);
-        logger.info("Retrieved the Reduced Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
 
-        logger.info("Adding Resource to the Resources Index. URI: " + resource.getId()); start = System.currentTimeMillis();
-        indexing.updateResource(connector, resource);
+        logger.info("Adding Resource to the Resources Index. URI: " + resource.getId()); long start = System.currentTimeMillis();
+        indexing.updateResource(connectorUri, resource);
         logger.info("Finished adding to the Resources Index ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
 
+
+        logger.info("Retrieving Reduced Connector. URI: " + connectorUri); start = System.currentTimeMillis();
+        Connector connector = repositoryFacade.getReducedConnector(connectorUri, 10);
+        logger.info("Retrieved the Reduced Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
 
         logger.info("Adding Connector to the Connector Index. URI: " + connector.getId()); start = System.currentTimeMillis();
         indexing.update(connector);

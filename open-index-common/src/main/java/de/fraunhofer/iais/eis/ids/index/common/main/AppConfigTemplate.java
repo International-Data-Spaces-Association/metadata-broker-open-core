@@ -27,6 +27,7 @@ public abstract class AppConfigTemplate {
 
     //Try to find some indexing on classpath. If not present, use Null Indexing
     public Indexing indexing = ServiceLoader.load(Indexing.class).findFirst().orElse(new NullIndexing<>());
+    public int maxNumberOfIndexedConnectorResources = 100;
     public SecurityTokenProvider securityTokenProvider = new SecurityTokenProvider() {
         @Override
         public String getSecurityToken() {
@@ -39,10 +40,11 @@ public abstract class AppConfigTemplate {
      * @param indexing Desired indexing implementation to be used
      * @return AppConfigTemplate with new value set for indexing
      */
-    public AppConfigTemplate setIndexing(Indexing indexing)
+    public AppConfigTemplate setIndexing(Indexing indexing, int maxNumberOfIndexedConnectorResources)
     {
         logger.info("Setting indexing to " + indexing.getClass().getSimpleName());
         this.indexing = indexing;
+        this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
         return this;
     }
 

@@ -22,6 +22,7 @@ services:
     - DAPS_VALIDATE_INCOMING=true
     - COMPONENT_URI=https://localhost/
     - COMPONENT_CATALOGURI=https://localhost/connectors/
+    - JWKS_TRUSTEDHOSTS=daps.aisec.fraunhofer.de,omejdn
     expose:
     - "8080"
 

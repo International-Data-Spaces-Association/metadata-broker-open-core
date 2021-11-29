@@ -7,11 +7,12 @@ import de.fraunhofer.iais.eis.ids.component.ecosystemintegration.daps.tokenrenew
 import de.fraunhofer.iais.eis.ids.component.interaction.multipart.MultipartComponentInteractor;
 import de.fraunhofer.iais.eis.ids.component.protocol.http.server.ComponentInteractorProvider;
 import de.fraunhofer.iais.eis.ids.index.common.impl.IndexSelfDescription;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.solr.SolrAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -41,6 +42,13 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
 
     public MultipartComponentInteractor multipartComponentInteractor;
 
+    @Value("${ssl.javakeystore}")
+    public static FileInputStream javakeystore;
+
+    public MainTemplate(FileInputStream javakeystore) {
+    }
+
+
     /**
      * This function generates a default self-description and can be overridden by child classes
      * @return Self-description of this infrastructure component
@@ -63,7 +71,8 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
     public SecurityTokenProvider createSecurityTokenProvider()
     {
         return new DapsSecurityTokenProvider(
-                getClass().getClassLoader().getResourceAsStream("isstbroker-keystore.jks"),
+
+                        javakeystore,
                 keystorePassword,
                 keystoreAlias,
                 dapsUrl,

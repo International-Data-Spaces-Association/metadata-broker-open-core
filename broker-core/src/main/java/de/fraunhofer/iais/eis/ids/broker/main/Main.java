@@ -56,6 +56,12 @@ public class Main extends MainTemplate implements ComponentInteractorProvider {
     @Autowired
     private Environment env;
 
+
+    public Main() {
+        super(javakeystore);
+    }
+
+
     /**
      * This function is called during startup and takes care of the initialization
      */

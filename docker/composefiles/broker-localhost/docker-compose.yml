@@ -12,8 +12,8 @@ services:
   broker-core:
     image: registry.gitlab.cc-asp.fraunhofer.de:4567/eis-ids/broker-open/core:latest
     volumes:
-     # - /etc/idscert/localhost:/etc/cert/
-      - c:/etc/idscert/localhost:/etc/cert/
+      - /etc/idscert/localhost:/etc/cert/
+      #- c:/etc/idscert/localhost:/etc/cert/
     restart: always
     environment:
     - SPARQL_ENDPOINT=http://broker-fuseki:3030/connectorData

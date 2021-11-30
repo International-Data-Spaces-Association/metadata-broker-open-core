@@ -36,8 +36,8 @@ if [ ! -z "$COMPONENT_CATALOG_URI" ]; then
 fi
 
 #JAVAKESTORE
-if [ ! -z "$SSL_JAVAKEYSTORE" ]; then
-    ARGS="${ARGS} -Dssl.javakeystore=${SSL_JAVAKEYSTORE}"
+if [ ! -z "$IDENTITY_JAVAKEYSTORE" ]; then
+    ARGS="${ARGS} -Dssl.javakeystore=${IDENTITY_JAVAKEYSTORE}"
 fi
 
 

@@ -198,11 +198,13 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         }
 
         logger.info("Checking if connector is active in triple store. ID: " + connectorUri);
-        if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
-            connectorUri = URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
+        synchronized (repositoryFacade) {
             if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
-                logger.info("Found that connector is not active. Must be registered first");
-                throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not actively registered at this broker. Cannot update resource for this connector."));
+                connectorUri = URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
+                if (!repositoryFacade.graphIsActive(connectorUri.toString())) {
+                    logger.info("Found that connector is not active. Must be registered first");
+                    throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not actively registered at this broker. Cannot update resource for this connector."));
+                }
             }
         }
 
@@ -287,7 +289,9 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
      */
     @Override
     public String getResults(String queryString) throws RejectMessageException {
-        return new GenericQueryEvaluator(repositoryFacade).getResults(queryString);
+        synchronized (repositoryFacade) {
+            return new GenericQueryEvaluator(repositoryFacade).getResults(queryString);
+        }
     }
 
     /**
@@ -307,7 +311,9 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         //subject, predicate and object of the triple
         Model m = result.getModel();
         m.add(ResourceFactory.createResource(catalogUri.toString()), ResourceFactory.createProperty("https://w3id.org/idsa/core/offeredResource"), ResourceFactory.createResource(resource.getId().toString()));
-        repositoryFacade.addStatements(result.getModel(), result.getNamedGraph().toString());
+        synchronized (repositoryFacade) {
+            repositoryFacade.addStatements(result.getModel(), result.getNamedGraph().toString());
+        }
     }
 
 

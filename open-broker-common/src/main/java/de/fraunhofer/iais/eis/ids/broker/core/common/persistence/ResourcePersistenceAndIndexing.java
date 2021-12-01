@@ -187,7 +187,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
 
             //Rewrite resource
             logger.info("Serialize rewritten Resource"); start = System.currentTimeMillis();
-            SelfDescriptionPersistenceAndIndexing.replacedIds = new HashMap<>(); //Clear the map tracking all URIs that were replaced
+            SelfDescriptionPersistenceAndIndexing.replacedIds.set(new HashMap<URI, URI>()); //Clear the map tracking all URIs that were replaced
             resource = new Serializer().deserialize( //Parse to Java Class
                     SelfDescriptionPersistenceAndIndexing.addSameAsStatements( //Add owl:sameAs statements for all URIs we are replacing
                             SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri)), //Replace URIs

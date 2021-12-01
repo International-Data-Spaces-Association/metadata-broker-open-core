@@ -291,6 +291,7 @@ public class RepositoryFacade {
      */
     public boolean booleanQuery(String query)
     {
+
         RDFConnection connection = getNewReadOnlyConnectionToFuseki();
         boolean result = connection.queryAsk(query);
         connection.close();
@@ -615,7 +616,10 @@ public class RepositoryFacade {
         ParameterizedSparqlString parameterizedSparqlString = new ParameterizedSparqlString("ASK FROM NAMED <" + adminGraphUri.toString() + "> WHERE { GRAPH ?g { ?connector <" + graphIsActiveUrl + "> true . } } ");
         parameterizedSparqlString.setIri("connector", graphUrl);
         try {
-            return booleanQuery(parameterizedSparqlString.toString());
+            boolean isActiveGraph = booleanQuery(parameterizedSparqlString.toString());
+            if (!isActiveGraph)
+                logger.debug("Named Graph " + graphUrl + " has found not existing or empty.");
+            return isActiveGraph;
         }
         catch (ARQException e)
         {

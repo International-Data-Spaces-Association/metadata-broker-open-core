@@ -35,7 +35,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
 
     private static URI componentCatalogUri;
 
-    static Map<URI, URI> replacedIds;
+    static ThreadLocal<Map<URI, URI>> replacedIds = ThreadLocal.withInitial(() -> new HashMap<>());
 
     /**
      * Constructor
@@ -126,7 +126,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      */
     static private String doReplace(String input, URI oldURI, URI newURI) {
         //Store the original URI, so that we can add an owl:sameAs statement, indicating the original URI
-        replacedIds.put(oldURI, newURI);
+        replacedIds.get().put(oldURI, newURI);
         //Make sure that we replace only "full URIs" and don't replace the URI if it is only part of a longer URI
         return input.replace("\"" + oldURI + "\"", "\"" + newURI + "\"");
     }
@@ -255,7 +255,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     private InfrastructureComponent replaceIds(InfrastructureComponent infrastructureComponent) throws IOException, URISyntaxException, RejectMessageException {
         //Collect all relevant IDs of IDS items (connector, catalogs, resources, representations, artifacts) replace them later
         //New object is handled, reset the replaced IDs
-        replacedIds = new HashMap<>();
+        replacedIds.set(new HashMap<>());
         //TODO: Ideally, use relative URIs: "./ + hashCode" instead, but Serializer (Jena) fails on that. We don't really want to store the full URI here, as that makes the broker un-portable
         if (infrastructureComponent.getId() == null) {
             throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE, new NullPointerException("Connector did not provide a URI"));
@@ -297,7 +297,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     static Model addSameAsStatements(String jsonLd) {
         Model model = ModelFactory.createDefaultModel();
         RDFDataMgr.read(model, new ByteArrayInputStream(jsonLd.getBytes(StandardCharsets.UTF_8)), RDFLanguages.JSONLD);
-        for (Map.Entry<URI, URI> entry : replacedIds.entrySet()) {
+        for (Map.Entry<URI, URI> entry : replacedIds.get().entrySet()) {
             model.add(ResourceFactory.createStatement( //Add a new triple to the model
                     ResourceFactory.createResource(entry.getValue().toString()), //Subject: The new URI
                     ResourceFactory.createProperty("http://www.w3.org/2002/07/owl#sameAs"), //Predicate: owl:sameAs
@@ -317,8 +317,13 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     @Override
     public URI updated(InfrastructureComponent infrastructureComponent) throws IOException, RejectMessageException {
         URI connectorUri = rewriteConnectorUri(infrastructureComponent.getId());
-        boolean wasActive = repositoryFacade.graphIsActive(connectorUri.toString());
-        boolean existed = repositoryFacade.graphExists(connectorUri.toString());
+
+        boolean wasActive;
+        boolean existed;
+        synchronized (repositoryFacade) {
+            wasActive = repositoryFacade.graphIsActive(connectorUri.toString());
+            existed = repositoryFacade.graphExists(connectorUri.toString());
+        }
 
         //Replace URIs in this infrastructureComponent with URIs matching our scheme. This is required for a RESTful API
         //TODO: Do the same for resources (or at ParIS, for participants)

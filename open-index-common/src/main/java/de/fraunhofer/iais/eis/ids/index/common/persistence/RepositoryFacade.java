@@ -42,35 +42,43 @@ public class RepositoryFacade {
 
     private static boolean writableConnectionWarningPrinted = false;
 
-    private static final String CONNECTOR_QUERY_HATEOS = "PREFIX ids: <https://w3id.org/idsa/core/> \n"
-                                                         + "PREFIX owl: <http://www.w3.org/2002/07/owl#>\n"
-                                                         + "\n"
-                                                         + "CONSTRUCT { \n"
-                                                         + "  ?s0 ?p0 ?o0 . \n"
-                                                         + "  ?o0 ?p1 ?o1 . \n"
-                                                         + "} \n"
-                                                         + "WHERE {  \n"
-                                                         + "  GRAPH <%1$s> {\n"
-                                                         + "    { <%1$s> ?p0 ?o0 . } \n"
-                                                         + "    UNION \n"
-                                                         + "    { ?s owl:sameAs <%1$s> ; ?p0 ?o0 . }\n"
-                                                         + "    \n"
-                                                         + "    BIND ( IF (BOUND(?s), ?s, <%1$s>) AS ?s0) .\n"
-                                                         + "    OPTIONAL { ?o0 ?p1 ?o1 \n"
-                                                         + "              \n"
-                                                         + "      OPTIONAL { \n"
-                                                         + "        { # ?o1 should be an ids:Resource, and only a certain amount shall be returned\n"
-                                                         + "          SELECT (?o1 AS ?res) WHERE { GRAPH <%1$s> {\n"
-                                                         + "              \n"
-                                                         + "                { ?o1 a ids:Resource } UNION { ?o1 a ids:DataResource } UNION { ?o1 a ids:TextResource } UNION { ?o1 a ids:AudioResource } UNION { ?o1 a ids:ImageResource } UNION { ?o1 a ids:VideoResource } UNION { ?o1 a ids:SoftwareResource } UNION { ?o1 a ids:AppResource }\n"
-                                                         + "              \n"
-                                                         + "            }}\n"
-                                                         + "        }\n"
-                                                         + "        FILTER ( ?o1 = ?res ) .\n"
-                                                         + "      }\n"
-                                                         + "    } \n"
-                                                         + "  } \n"
-                                                         + "}";
+    private static final String CONNECTOR_QUERY_HATEOS_BEGINNING =
+            "PREFIX ids: <https://w3id.org/idsa/core/> \n" +
+            "PREFIX owl: <http://www.w3.org/2002/07/owl#>\n" +
+            "\n" +
+            "CONSTRUCT { \n" +
+            "  ?s0 ?p0 ?o0 . \n" +
+            "  ?o0 ?p1 ?o1 . \n" +
+            "} \n" +
+            "WHERE {  \n" +
+            "  GRAPH <http://localhost:8080/connectors/-1818765891> {\n" +
+            "    { <http://localhost:8080/connectors/-1818765891> ?p0 ?o0 . } \n" +
+            "    UNION \n" +
+            "    { ?s owl:sameAs <http://localhost:8080/connectors/-1818765891> ; ?p0 ?o0 . }\n" +
+            "    \n" +
+            "    BIND ( IF (BOUND(?s), ?s, <http://localhost:8080/connectors/-1818765891>) AS ?s0) .\n" +
+            "    OPTIONAL { \n" +
+            "      {\n" +
+            "      \t?o0 ?p1 ?o1 .\n" +
+            "        FILTER (?p1 != ids:offeredResource)\n" +
+            "      } UNION {       \n" +
+            "        BIND (ids:offeredResource AS ?p1)\n" +
+            "        ?o0 ?p1 ?o1 .\n" +
+            "    \n" +
+            "        { # ?o1 should be an ids:Resource, and only a certain amount shall be returned\n" +
+            "          SELECT (?o1 AS ?res) WHERE { GRAPH <http://localhost:8080/connectors/-1818765891> {\n" +
+            "              \n" +
+            "                { ?o1 a ids:Resource } UNION { ?o1 a ids:DataResource } UNION { ?o1 a ids:TextResource } UNION { ?o1 a ids:AudioResource } UNION { ?o1 a ids:ImageResource } UNION { ?o1 a ids:VideoResource } UNION { ?o1 a ids:SoftwareResource } UNION { ?o1 a ids:AppResource }\n" +
+            "              \n" +
+            "            }}";
+    private static final String CONNECTOR_QUERY_HATEOS_END =
+            "\n" +
+                    "        }\n" +
+                    "        FILTER ( ?o1 = ?res ) .\n" +
+                    "      }\n" +
+                    "    } \n" +
+                    "  } \n" +
+                    "}";
 
     /**
      * Default constructor, creating a local in-memory repository
@@ -437,8 +445,9 @@ public class RepositoryFacade {
      * @throws RejectMessageException if the connector is not known to the broker, or if the parsing fails
      */
     public Connector getReducedConnector(URI connectorUri, int limit, int offset) throws RejectMessageException {
-        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS, connectorUri);
-        rawQueryString += " LIMIT " + limit + " OFFSET " + offset;
+        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS_BEGINNING +
+                " LIMIT " + limit + " OFFSET " + offset +
+                CONNECTOR_QUERY_HATEOS_END, connectorUri);
         return getReducedConnector(connectorUri, rawQueryString);
     }
 
@@ -451,8 +460,9 @@ public class RepositoryFacade {
      * @throws RejectMessageException if the connector is not known to the broker, or if the parsing fails
      */
     public Connector getReducedConnector(URI connectorUri, int limit) throws RejectMessageException {
-        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS, connectorUri);
-        rawQueryString += " LIMIT " + limit;
+        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS_BEGINNING +
+                " LIMIT " + limit +
+                CONNECTOR_QUERY_HATEOS_END, connectorUri);
         return getReducedConnector(connectorUri, rawQueryString);
     }
 
@@ -463,7 +473,8 @@ public class RepositoryFacade {
      * @throws RejectMessageException if the connector is not known to the broker, or if the parsing fails
      */
     public Connector getReducedConnector(URI connectorUri) throws RejectMessageException {
-        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS, connectorUri);
+        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS_BEGINNING +
+                CONNECTOR_QUERY_HATEOS_END, connectorUri);
         return getReducedConnector(connectorUri, rawQueryString);
     }
 

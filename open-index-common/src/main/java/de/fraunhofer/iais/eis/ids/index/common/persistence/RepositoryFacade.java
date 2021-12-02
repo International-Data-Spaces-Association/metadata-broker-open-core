@@ -51,12 +51,12 @@ public class RepositoryFacade {
             "  ?o0 ?p1 ?o1 . \n" +
             "} \n" +
             "WHERE {  \n" +
-            "  GRAPH <http://localhost:8080/connectors/-1818765891> {\n" +
-            "    { <http://localhost:8080/connectors/-1818765891> ?p0 ?o0 . } \n" +
+            "  GRAPH <%1$s> {\n" +
+            "    { <%1$s> ?p0 ?o0 . } \n" +
             "    UNION \n" +
-            "    { ?s owl:sameAs <http://localhost:8080/connectors/-1818765891> ; ?p0 ?o0 . }\n" +
+            "    { ?s owl:sameAs <%1$s> ; ?p0 ?o0 . }\n" +
             "    \n" +
-            "    BIND ( IF (BOUND(?s), ?s, <http://localhost:8080/connectors/-1818765891>) AS ?s0) .\n" +
+            "    BIND ( IF (BOUND(?s), ?s, <%1$s>) AS ?s0) .\n" +
             "    OPTIONAL { \n" +
             "      {\n" +
             "      \t?o0 ?p1 ?o1 .\n" +
@@ -66,7 +66,7 @@ public class RepositoryFacade {
             "        ?o0 ?p1 ?o1 .\n" +
             "    \n" +
             "        { # ?o1 should be an ids:Resource, and only a certain amount shall be returned\n" +
-            "          SELECT (?o1 AS ?res) WHERE { GRAPH <http://localhost:8080/connectors/-1818765891> {\n" +
+            "          SELECT (?o1 AS ?res) WHERE { GRAPH <%1$s> {\n" +
             "              \n" +
             "                { ?o1 a ids:Resource } UNION { ?o1 a ids:DataResource } UNION { ?o1 a ids:TextResource } UNION { ?o1 a ids:AudioResource } UNION { ?o1 a ids:ImageResource } UNION { ?o1 a ids:VideoResource } UNION { ?o1 a ids:SoftwareResource } UNION { ?o1 a ids:AppResource }\n" +
             "              \n" +

@@ -230,7 +230,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
 
 
         logger.info("Retrieving Reduced Connector. URI: " + connectorUri); start = System.currentTimeMillis();
-        Connector connector = repositoryFacade.getReducedConnector(connectorUri, 10);
+        Connector connector = repositoryFacade.getReducedConnector(connectorUri, maxNumberOfIndexedConnectorResources);
         logger.info("Retrieved the Reduced Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
 
         logger.info("Adding Connector to the Connector Index. URI: " + connector.getId()); start = System.currentTimeMillis();
@@ -334,25 +334,6 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
                         //"BIND(<" + connectorUri.toString() + "> AS ?g) . " +
                         //"BIND(<" + resourceUri.toString() + "> AS ?res) . " +
                         "GRAPH ?g { " +
-//                        "{ ?res ?p ?o . " +
-//                            "OPTIONAL { ?o ?p2 ?o2 . " +
-//                                "" +
-//                                "OPTIONAL { ?o2 ?p3 ?o3 . " +
-//                                    "OPTIONAL { ?o3 ?p4 ?o4 . " +
-//                                        "OPTIONAL { ?o4 ?p5 ?o5 . " +
-//                                            "OPTIONAL { ?o5 ?p6 ?o6 . " +
-//                                                "OPTIONAL { ?o6 ?p7 ?o7 . " +
-//                                                "} " +
-//                                            "} " +
-//                                        "} " +
-//                                    "} " +
-//                                "} " +
-//                            "} " +
-//                        "} " +
-//                        "UNION " +
-//                        "{ ?s ?p ?res . }" +
-
-
                         "{ ?res ?p ?o . " +
                             "OPTIONAL { ?o ?p2 ?o2 . " +
                             "FILTER(?count = 1) "+ // more incoming triples means the respective entity ?o is used by other parts --> do not delete it as the other entity needs it.

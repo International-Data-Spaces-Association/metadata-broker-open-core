@@ -65,7 +65,7 @@ public class AppConfig extends AppConfigTemplate {
         //Object taking care of modifications to resources, such as connectors registering new resources
         //In contrast to the SelfDescriptionPersistenceAndIndexing, this class takes care of persisting resources coming from ResourceUpdateMessages and ResourceUnavailableMessages
         ResourcePersistenceAndIndexing resourcePersistenceAndIndexing = new ResourcePersistenceAndIndexing(
-                repositoryFacade, catalogUri);
+                repositoryFacade, catalogUri, maxNumberOfIndexedConnectorResources);
         resourcePersistenceAndIndexing.setIndexing(indexing);
 
         //Strategy for fetching the context for JSON-LD objects

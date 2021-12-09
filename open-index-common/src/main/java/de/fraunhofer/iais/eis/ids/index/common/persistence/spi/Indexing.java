@@ -35,6 +35,14 @@ public interface Indexing<T> {
     void updateResource( Connector reducedConnector, Resource resource ) throws IOException;
 
     /**
+     * Function for updating an resource in the index
+     * @param reducedConnector URI of the Connector that contains the resource
+     * @param resource Resource to be indexed
+     * @throws IOException may be thrown if the infrastructure component could not be updated, e.g. because it was not found
+     */
+    void updateResource( URI reducedConnector, Resource resource ) throws IOException;
+
+    /**
      * Function for removing an indexed infrastructure component OR participant from the index
      * @param objectId A reference to the object to be removed
      * @throws IOException if the infrastructure component could not be deleted, e.g. because it was not found

@@ -35,6 +35,11 @@ if [ ! -z "$COMPONENT_CATALOG_URI" ]; then
     ARGS="${ARGS} -Dcomponent.catalogUri=${COMPONENT_CATALOG_URI}"
 fi
 
+#JAVAKESTORE
+if [ ! -z "$IDENTITY_JAVAKEYSTORE" ]; then
+    ARGS="${ARGS} -Dssl.javakeystore=${IDENTITY_JAVAKEYSTORE}"
+fi
+
 
 # Enable debugging
 ARGS="${ARGS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"

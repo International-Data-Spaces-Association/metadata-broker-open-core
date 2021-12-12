@@ -84,7 +84,7 @@ public class ResourcePersitenceAndIndexingTest {
         SelfDescriptionPersistenceAndIndexing selfDescriptionPersistence = new SelfDescriptionPersistenceAndIndexing(repositoryFacade,
                 new URI("http://example.org/broker/catalog/"), indexing);
         selfDescriptionPersistence.updated(exampleConnector);
-        resourcePersistenceAndIndexing = new  ResourcePersistenceAndIndexing(repositoryFacade, new URI("http://example.org/broker/catalog/"));
+        resourcePersistenceAndIndexing = new  ResourcePersistenceAndIndexing(repositoryFacade, new URI("http://example.org/broker/catalog/"), 1000);
         resourcePersistenceAndIndexing.setIndexing(indexing);
     }
 

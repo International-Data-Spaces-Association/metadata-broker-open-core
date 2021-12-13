@@ -27,6 +27,7 @@ public abstract class AppConfigTemplate {
 
     //Try to find some indexing on classpath. If not present, use Null Indexing
     public Indexing indexing = ServiceLoader.load(Indexing.class).findFirst().orElse(new NullIndexing<>());
+    public int maxNumberOfIndexedConnectorResources = 100; // only the default value
     public SecurityTokenProvider securityTokenProvider = new SecurityTokenProvider() {
         @Override
         public String getSecurityToken() {
@@ -37,12 +38,16 @@ public abstract class AppConfigTemplate {
     /**
      * This function can be used to overwrite the default behaviour of trying to find any indexing in the classpath
      * @param indexing Desired indexing implementation to be used
+     * @param maxNumberOfIndexedConnectorResources The Connector index is limited to a certain number of contained
+     *                                             resources to ensure acceptable read/write times. This parameter gives
+     *                                             the upper limit. Default is 100
      * @return AppConfigTemplate with new value set for indexing
      */
-    public AppConfigTemplate setIndexing(Indexing indexing)
+    public AppConfigTemplate setIndexing(Indexing indexing, int maxNumberOfIndexedConnectorResources)
     {
         logger.info("Setting indexing to " + indexing.getClass().getSimpleName());
         this.indexing = indexing;
+        this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
         return this;
     }
 
@@ -146,6 +151,7 @@ public abstract class AppConfigTemplate {
         logger.info("Incoming messages DAPS token verification enabled: " +dapsValidateIncoming);
         return this;
     }
+
 
     /**
      * Build function, turning Builder Object into an actual MultipartComponentInteractor

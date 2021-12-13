@@ -43,6 +43,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     //For this reason, this indexing is not of type Resource, but InfrastructureComponent (i.e. Connector + X)
     private Indexing<InfrastructureComponent> indexing = new NullIndexing<>();
 
+    private int maxNumberOfIndexedConnectorResources;
+
     private final URI componentCatalogUri;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -51,10 +53,17 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     /**
      * Constructor
      * @param repositoryFacade repository (triple store) to which the modifications should be stored
+     * @param componentCatalogUri The BaseURL of the catalog URI what shall be used
+     * @param maxNumberOfIndexedConnectorResources the maximum number of resources that will be added to the
+     *                                             'registrations' index (the one for the connectors) high numbers
+     *                                             drastically decrease the performance when a new resource is registered.
+     *                                             recommended: 10 to 100
      */
-    public ResourcePersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri) {
+    public ResourcePersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri,
+                                          int maxNumberOfIndexedConnectorResources) {
         ResourcePersistenceAndIndexing.repositoryFacade = repositoryFacade;
         this.componentCatalogUri = componentCatalogUri;
+        this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
         Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
     }
 
@@ -172,16 +181,18 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
                 logger.info("Rewrote connectorUri to " + connectorUri);
                 logger.info("Connector URI did not start with our component catalog URI: " + componentCatalogUri);
             }
-            logger.info("Fetching catalog of connector");
+            logger.info("Fetching catalog of connector"); long start = System.currentTimeMillis();
             catalogUri = getConnectorCatalog(connectorUri);
-            logger.info("Catalog found. URI: " + catalogUri);
+            logger.info("Catalog found ("+(System.currentTimeMillis()-start)+" ms). URI: " + catalogUri);
 
             //Rewrite resource
+            logger.info("Serialize rewritten Resource"); start = System.currentTimeMillis();
             SelfDescriptionPersistenceAndIndexing.replacedIds = new HashMap<>(); //Clear the map tracking all URIs that were replaced
             resource = new Serializer().deserialize( //Parse to Java Class
                     SelfDescriptionPersistenceAndIndexing.addSameAsStatements( //Add owl:sameAs statements for all URIs we are replacing
                             SelfDescriptionPersistenceAndIndexing.rewriteResource(resource.toRdf(), resource, catalogUri)), //Replace URIs
                     Resource.class); //Result of parsing should be a Resource
+            logger.info("Serialized Resource ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
         } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
@@ -199,19 +210,33 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
 
         //Try to remove the resource from Triple Store if it exists, so that it is updated properly.
         if (resourceExists(resource.getId())) {
-            logger.info("Resource already exists. Removing");
+            logger.info("Resource already exists. Removing"); long start = System.currentTimeMillis();
             removeFromTriplestore(resource.getId(), connectorUri);
+            logger.info("Removed Resource ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
         }
 
         try {
+            logger.info("Adding Resource to the TripleStore. URI: " + resource.getId()); long start = System.currentTimeMillis();
             addToTriplestore(resource, connectorUri, catalogUri);
+            logger.info("Added to the TripleStore ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
         } catch (URISyntaxException e) {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
-        Connector
-                connector = repositoryFacade.getReducedConnector(connectorUri);
-        indexing.updateResource(connector, resource);
+
+        long start = System.currentTimeMillis();
+        logger.info("Retrieving Reduced Connector. URI: " + connectorUri);
+        Connector connector = repositoryFacade.getReducedConnector(connectorUri, maxNumberOfIndexedConnectorResources);
+        logger.info("Retrieved the Reduced Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
+
+        logger.info("Adding Connector to the Connector Index. URI: " + connector.getId());
+        start = System.currentTimeMillis();
         indexing.update(connector);
+        logger.info("Finished adding to the Connector Index ("+(System.currentTimeMillis()-start)+" ms). URI: " + connector.getId());
+
+        logger.info("Adding Resource to the Resources Index. URI: " + resource.getId());
+        start = System.currentTimeMillis();
+        indexing.updateResource(connector, resource);
+        logger.info("Finished adding to the Resources Index ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
 
         //Return the updated resource URI
         return resource.getId();
@@ -310,25 +335,6 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
                         //"BIND(<" + connectorUri.toString() + "> AS ?g) . " +
                         //"BIND(<" + resourceUri.toString() + "> AS ?res) . " +
                         "GRAPH ?g { " +
-//                        "{ ?res ?p ?o . " +
-//                            "OPTIONAL { ?o ?p2 ?o2 . " +
-//                                "" +
-//                                "OPTIONAL { ?o2 ?p3 ?o3 . " +
-//                                    "OPTIONAL { ?o3 ?p4 ?o4 . " +
-//                                        "OPTIONAL { ?o4 ?p5 ?o5 . " +
-//                                            "OPTIONAL { ?o5 ?p6 ?o6 . " +
-//                                                "OPTIONAL { ?o6 ?p7 ?o7 . " +
-//                                                "} " +
-//                                            "} " +
-//                                        "} " +
-//                                    "} " +
-//                                "} " +
-//                            "} " +
-//                        "} " +
-//                        "UNION " +
-//                        "{ ?s ?p ?res . }" +
-
-
                         "{ ?res ?p ?o . " +
                             "OPTIONAL { ?o ?p2 ?o2 . " +
                             "FILTER(?count = 1) "+ // more incoming triples means the respective entity ?o is used by other parts --> do not delete it as the other entity needs it.

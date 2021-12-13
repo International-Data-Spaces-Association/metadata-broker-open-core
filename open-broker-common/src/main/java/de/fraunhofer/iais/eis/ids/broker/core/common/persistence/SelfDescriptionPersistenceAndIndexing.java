@@ -30,6 +30,8 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
     private final Logger logger = LoggerFactory.getLogger(SelfDescriptionPersistenceAndIndexing.class);
     private final ConnectorModelCreator connectorModelCreator = new ConnectorModelCreator();
 
+    private int maxNumberOfIndexedConnectorResources;
+
     private final RepositoryFacade repositoryFacade;
     private Indexing<InfrastructureComponent> indexing;
 
@@ -42,9 +44,10 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
      *
      * @param repositoryFacade repository (triple store) to which the modifications should be stored
      */
-    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri, Indexing<InfrastructureComponent> indexing) {
+    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri, Indexing<InfrastructureComponent> indexing, int maxNumberOfIndexedConnectorResources) {
         this.repositoryFacade = repositoryFacade;
         this.indexing = indexing;
+        this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
         SelfDescriptionPersistenceAndIndexing.componentCatalogUri = componentCatalogUri;
         Date date = new Date();
         Timer timer = new Timer();
@@ -263,7 +266,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
 
         //Rewrite URI of the connector
         URI infrastructureComponentUri = rewriteConnectorUri(infrastructureComponent.getId());
-        String currentString = infrastructureComponent.toRdf();
+        String currentString = new Serializer().serialize(infrastructureComponent);
         currentString = doReplace(currentString, infrastructureComponent.getId(), infrastructureComponentUri);
 
         //If connector is holding catalogs, rewrite them and their contents
@@ -273,11 +276,11 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
                 currentString = doReplace(currentString, resourceCatalog.getId(), catalogUri);
 
                 Set<Resource> resourcesToHandle = new HashSet<>();
-                if (resourceCatalog.getOfferedResource() != null) {
-                    resourcesToHandle.addAll(resourceCatalog.getOfferedResource());
+                if (resourceCatalog.getRequestedResourceAsObject() != null) {  //List<Resource> getRequestedResourceAsObject
+                    resourcesToHandle.addAll(resourceCatalog.getRequestedResourceAsObject());
                 }
-                if (resourceCatalog.getRequestedResource() != null) {
-                    resourcesToHandle.addAll(resourceCatalog.getRequestedResource());
+                if (resourceCatalog.getRequestedResource() != null) {  //List<Resource> getRequestedResourceAsObject
+                    resourcesToHandle.addAll(resourceCatalog.getRequestedResourceAsObject());
                 }
                 for (Resource currentResource : resourcesToHandle) {
                     currentString = rewriteResource(currentString, currentResource, catalogUri);
@@ -336,6 +339,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         }
         //We need to reflect the changes in the index.
         //If the connector was passive before, the document was deleted from the index, so we need to recreate it
+        infrastructureComponent = repositoryFacade.getReducedConnector(infrastructureComponent.getId(), maxNumberOfIndexedConnectorResources);
         if (wasActive) { //Connector exists in index - update it
             try {
                 indexing.update(infrastructureComponent);

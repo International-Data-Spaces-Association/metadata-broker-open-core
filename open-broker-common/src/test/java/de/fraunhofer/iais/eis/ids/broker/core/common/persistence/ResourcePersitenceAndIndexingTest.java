@@ -40,10 +40,10 @@ public class ResourcePersitenceAndIndexingTest {
         model = ModelFactory.createDefaultModel();
 
         exampleResource1 = new DataResourceBuilder(new URI("http://example.org/resource1"))
-                ._sovereign_(new URI("http://example.org/participant1"))
+                ._sovereignAsUri_(new URI("http://example.org/participant1"))
                 .build();
         exampleResource2 = new DataResourceBuilder(new URI("http://example.org/resource2"))
-                ._sovereign_(new URI("http://example.org/participant1"))
+                ._sovereignAsUri_(new URI("http://example.org/participant1"))
                 ._defaultRepresentation_(new RepresentationBuilder()
                         ._description_(new TypedLiteral("description", "en"))
                         ._title_(new TypedLiteral("titel", "en"))
@@ -59,12 +59,12 @@ public class ResourcePersitenceAndIndexingTest {
                 .build();
 
         exampleConnector = new BaseConnectorBuilder(new URI("http://example.org/connector1/"))
-                ._maintainer_(new URI("http://example.org/participant1"))
-                ._curator_(new URI("http://example.org/participant1"))
+                ._maintainerAsUri_(new URI("http://example.org/participant1"))
+                ._curatorAsUri_(new URI("http://example.org/participant1"))
                 ._outboundModelVersion_("4.0.0")
                 ._inboundModelVersion_(Util.asList("4.0.0"))
                 ._resourceCatalog_(Util.asList(new ResourceCatalogBuilder()
-                                ._offeredResource_(Util.asList(exampleResource1, exampleResource2))
+                                ._offeredResourceAsObject_(Util.asList(exampleResource1, exampleResource2))
                         .build()))
                 ._securityProfile_(SecurityProfile.BASE_SECURITY_PROFILE)
                 ._hasDefaultEndpoint_(new ConnectorEndpointBuilder()._accessURL_(new URI("https://example.org/endpoint")).build())
@@ -82,9 +82,9 @@ public class ResourcePersitenceAndIndexingTest {
 
         Indexing indexing = new NullIndexing<>();
         SelfDescriptionPersistenceAndIndexing selfDescriptionPersistence = new SelfDescriptionPersistenceAndIndexing(repositoryFacade,
-                new URI("http://example.org/broker/catalog/"), indexing);
+                new URI("http://example.org/broker/catalog/"), indexing, 100);
         selfDescriptionPersistence.updated(exampleConnector);
-        resourcePersistenceAndIndexing = new  ResourcePersistenceAndIndexing(repositoryFacade, new URI("http://example.org/broker/catalog/"));
+        resourcePersistenceAndIndexing = new  ResourcePersistenceAndIndexing(repositoryFacade, new URI("http://example.org/broker/catalog/"), 1000);
         resourcePersistenceAndIndexing.setIndexing(indexing);
     }
 

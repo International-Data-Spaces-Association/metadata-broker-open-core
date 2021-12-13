@@ -4,12 +4,15 @@ import de.fraunhofer.iais.eis.Connector;
 import de.fraunhofer.iais.eis.Participant;
 import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
+import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
 import org.apache.http.conn.HttpHostConnectException;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
+import org.apache.jena.riot.RDFFormat;
+import org.apache.jena.riot.RDFWriter;
 import org.apache.jena.sparql.ARQException;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.engine.http.QueryExceptionHTTP;
@@ -19,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -38,35 +42,43 @@ public class RepositoryFacade {
 
     private static boolean writableConnectionWarningPrinted = false;
 
-    private static final String CONNECTOR_QUERY_HATEOS = "PREFIX ids: <https://w3id.org/idsa/core/> \n"
-                                                         + "PREFIX owl: <http://www.w3.org/2002/07/owl#>\n"
-                                                         + "\n"
-                                                         + "CONSTRUCT { \n"
-                                                         + "  ?s0 ?p0 ?o0 . \n"
-                                                         + "  ?o0 ?p1 ?o1 . \n"
-                                                         + "} \n"
-                                                         + "WHERE {  \n"
-                                                         + "  GRAPH <%1$s> {\n"
-                                                         + "    { <%1$s> ?p0 ?o0 . } \n"
-                                                         + "    UNION \n"
-                                                         + "    { ?s owl:sameAs <%1$s> ; ?p0 ?o0 . }\n"
-                                                         + "    \n"
-                                                         + "    BIND ( IF (BOUND(?s), ?s, <%1$s>) AS ?s0) .\n"
-                                                         + "    OPTIONAL { ?o0 ?p1 ?o1 \n"
-                                                         + "              \n"
-                                                         + "      OPTIONAL { \n"
-                                                         + "        { # ?o1 should be an ids:Resource, and only a certain amount shall be returned\n"
-                                                         + "          SELECT (?o1 AS ?res) WHERE { GRAPH <%1$s> {\n"
-                                                         + "              \n"
-                                                         + "                { ?o1 a ids:Resource } UNION { ?o1 a ids:DataResource } UNION { ?o1 a ids:TextResource } UNION { ?o1 a ids:AudioResource } UNION { ?o1 a ids:ImageResource } UNION { ?o1 a ids:VideoResource } UNION { ?o1 a ids:SoftwareResource } UNION { ?o1 a ids:AppResource }\n"
-                                                         + "              \n"
-                                                         + "            }}\n"
-                                                         + "        }\n"
-                                                         + "        FILTER ( ?o1 = ?res ) .\n"
-                                                         + "      }\n"
-                                                         + "    } \n"
-                                                         + "  } \n"
-                                                         + "}";
+    private static final String CONNECTOR_QUERY_HATEOS_BEGINNING =
+            "PREFIX ids: <https://w3id.org/idsa/core/> \n" +
+            "PREFIX owl: <http://www.w3.org/2002/07/owl#>\n" +
+            "\n" +
+            "CONSTRUCT { \n" +
+            "  ?s0 ?p0 ?o0 . \n" +
+            "  ?o0 ?p1 ?o1 . \n" +
+            "} \n" +
+            "WHERE {  \n" +
+            "  GRAPH <%1$s> {\n" +
+            "    { <%1$s> ?p0 ?o0 . } \n" +
+            "    UNION \n" +
+            "    { ?s owl:sameAs <%1$s> ; ?p0 ?o0 . }\n" +
+            "    \n" +
+            "    BIND ( IF (BOUND(?s), ?s, <%1$s>) AS ?s0) .\n" +
+            "    OPTIONAL { \n" +
+            "      {\n" +
+            "      \t?o0 ?p1 ?o1 .\n" +
+            "        FILTER (?p1 != ids:offeredResource)\n" +
+            "      } UNION {       \n" +
+            "        BIND (ids:offeredResource AS ?p1)\n" +
+            "        ?o0 ?p1 ?o1 .\n" +
+            "    \n" +
+            "        { # ?o1 should be an ids:Resource, and only a certain amount shall be returned\n" +
+            "          SELECT (?o1 AS ?res) WHERE { GRAPH <%1$s> {\n" +
+            "              \n" +
+            "                { ?o1 a ids:Resource } UNION { ?o1 a ids:DataResource } UNION { ?o1 a ids:TextResource } UNION { ?o1 a ids:AudioResource } UNION { ?o1 a ids:ImageResource } UNION { ?o1 a ids:VideoResource } UNION { ?o1 a ids:SoftwareResource } UNION { ?o1 a ids:AppResource }\n" +
+            "              \n" +
+            "            }}";
+    private static final String CONNECTOR_QUERY_HATEOS_END =
+            "\n" +
+                    "        }\n" +
+                    "        FILTER ( ?o1 = ?res ) .\n" +
+                    "      }\n" +
+                    "    } \n" +
+                    "  } \n" +
+                    "}";
 
     /**
      * Default constructor, creating a local in-memory repository
@@ -426,16 +438,53 @@ public class RepositoryFacade {
     /**
      * Utility function to obtain an IDS Connector object from the triple store
      * @param connectorUri The URI of the connector to be obtained
+     * @param limit the maximum number of contained resources in the catalog, used to control the size of the indexed
+     *              connector
+     * @param offset the offset of the resources that shall be indexed, see also 'limit'
+     * @return an IDS connector object with the requested connectorUri, if it is known to the broker
+     * @throws RejectMessageException if the connector is not known to the broker, or if the parsing fails
+     */
+    public Connector getReducedConnector(URI connectorUri, int limit, int offset) throws RejectMessageException {
+        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS_BEGINNING +
+                " LIMIT " + limit + " OFFSET " + offset +
+                CONNECTOR_QUERY_HATEOS_END, connectorUri);
+        return getReducedConnector(connectorUri, rawQueryString);
+    }
+
+    /**
+     * Utility function to obtain an IDS Connector object from the triple store
+     * @param connectorUri The URI of the connector to be obtained
+     * @param limit the maximum number of contained resources in the catalog, used to control the size of the indexed
+     *              connector
+     * @return an IDS connector object with the requested connectorUri, if it is known to the broker
+     * @throws RejectMessageException if the connector is not known to the broker, or if the parsing fails
+     */
+    public Connector getReducedConnector(URI connectorUri, int limit) throws RejectMessageException {
+        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS_BEGINNING +
+                " LIMIT " + limit +
+                CONNECTOR_QUERY_HATEOS_END, connectorUri);
+        return getReducedConnector(connectorUri, rawQueryString);
+    }
+
+    /**
+     * Utility function to obtain an IDS Connector object from the triple store
+     * @param connectorUri The URI of the connector to be obtained
      * @return an IDS connector object with the requested connectorUri, if it is known to the broker
      * @throws RejectMessageException if the connector is not known to the broker, or if the parsing fails
      */
     public Connector getReducedConnector(URI connectorUri) throws RejectMessageException {
+        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS_BEGINNING +
+                CONNECTOR_QUERY_HATEOS_END, connectorUri);
+        return getReducedConnector(connectorUri, rawQueryString);
+    }
+
+    private Connector getReducedConnector(URI connectorUri, String rawQueryString) throws RejectMessageException {
         logger.info("Getting reduced Connector" + connectorUri);
         if(!graphIsActive(connectorUri.toString()))
         {
             throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not known to this broker or unavailable."));
         }
-        String rawQueryString = String.format(CONNECTOR_QUERY_HATEOS, connectorUri);
+
         //Fire the query against our repository
         ParameterizedSparqlString queryString = new ParameterizedSparqlString(rawQueryString);
         try {
@@ -448,12 +497,23 @@ public class RepositoryFacade {
             }
 
             //Generate a connector object from the SPARQL result string (already containing the new resource!). This is a bit of a messy business
-            return ConstructQueryResultHandler.GraphQueryResultToConnector(result);
+            //return ConstructQueryResultHandler.GraphQueryResultToConnector(result);
+
+            RDFWriter writer = RDFWriter.create().format(RDFFormat.JSONLD).source(result).build();
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            writer.output(os);
+            Serializer s = new Serializer();
+            String output = os.toString();
+            return s.deserialize(output, Connector.class);
         }
         catch (ARQException e)
         {
             logger.warn("Potential SPARQL injection attack detected.", e);
             throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+        }
+        catch (IOException e) {
+            logger.warn("Problem with the containing Connector from the DB detected.", e);
+            throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR);
         }
     }
 

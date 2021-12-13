@@ -223,19 +223,20 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
 
-
-        logger.info("Adding Resource to the Resources Index. URI: " + resource.getId()); long start = System.currentTimeMillis();
-        indexing.updateResource(connectorUri, resource);
-        logger.info("Finished adding to the Resources Index ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
-
-
-        logger.info("Retrieving Reduced Connector. URI: " + connectorUri); start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
+        logger.info("Retrieving Reduced Connector. URI: " + connectorUri);
         Connector connector = repositoryFacade.getReducedConnector(connectorUri, maxNumberOfIndexedConnectorResources);
         logger.info("Retrieved the Reduced Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
 
-        logger.info("Adding Connector to the Connector Index. URI: " + connector.getId()); start = System.currentTimeMillis();
+        logger.info("Adding Connector to the Connector Index. URI: " + connector.getId());
+        start = System.currentTimeMillis();
         indexing.update(connector);
         logger.info("Finished adding to the Connector Index ("+(System.currentTimeMillis()-start)+" ms). URI: " + connector.getId());
+
+        logger.info("Adding Resource to the Resources Index. URI: " + resource.getId());
+        start = System.currentTimeMillis();
+        indexing.updateResource(connector, resource);
+        logger.info("Finished adding to the Resources Index ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
 
         //Return the updated resource URI
         return resource.getId();

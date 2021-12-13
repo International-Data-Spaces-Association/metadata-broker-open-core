@@ -32,11 +32,6 @@ public class NullIndexing<T> implements Indexing<T> {
         logger.info("Resource update from index IGNORED.");
     }
 
-    @Override
-    public void updateResource( URI reducedConnector, Resource resource )
-    {
-        logger.info("Resource update from index IGNORED.");
-    }
 
     @Override
     public void delete(URI issuerConnector) {

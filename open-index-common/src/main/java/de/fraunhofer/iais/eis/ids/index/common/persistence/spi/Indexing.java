@@ -40,7 +40,7 @@ public interface Indexing<T> {
      * @param resource Resource to be indexed
      * @throws IOException may be thrown if the infrastructure component could not be updated, e.g. because it was not found
      */
-    void updateResource( URI reducedConnector, Resource resource ) throws IOException;
+    //void updateResource( URI reducedConnector, Resource resource ) throws IOException;
 
     /**
      * Function for removing an indexed infrastructure component OR participant from the index

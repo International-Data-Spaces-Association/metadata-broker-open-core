@@ -38,7 +38,7 @@
         <repository>
             <id>eis-public-repo</id>
             <name>maven-public</name>
-            <url>http://maven.iais.fraunhofer.de/artifactory/eis-ids-public</url>
+            <url>https://maven.iais.fraunhofer.de/artifactory/eis-ids-public</url>
         </repository>
     </repositories>
 

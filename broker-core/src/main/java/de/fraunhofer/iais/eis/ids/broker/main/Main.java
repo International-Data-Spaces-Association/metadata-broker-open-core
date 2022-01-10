@@ -58,7 +58,7 @@ public class Main extends MainTemplate implements ComponentInteractorProvider {
 
 
     public Main() {
-        super(javakeystore);
+        super(javaKeystorePath);
     }
 
 

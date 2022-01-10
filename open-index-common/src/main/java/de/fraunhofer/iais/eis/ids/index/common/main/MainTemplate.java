@@ -49,7 +49,7 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
 
     @Value("${ssl.javakeystore}")
     public static String javaKeystorePath;
-    private static FileInputStream javakeystore;
+    public static FileInputStream javakeystore;
 
     Logger logger = LoggerFactory.getLogger(this.getClass());
 

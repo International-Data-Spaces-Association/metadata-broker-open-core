@@ -289,7 +289,7 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         if(!resourceExists(resourceUri)) {
             resourceUri = tryGetRewrittenResourceUri(connectorUri, resourceUri);
         }
-        logger.info("Finished the check for Resource ({}, orginally {}) exists (\"+(System.currentTimeMillis()-start)+\" ms).", resourceUri, originalResourceUri);
+        logger.info("Finished the check for Resource ({}, orginally {}) exists ("+(System.currentTimeMillis()-start)+" ms).", resourceUri, originalResourceUri);
 
         logger.info("Removing {} from the Triplestore.", resourceUri); start = System.currentTimeMillis();
         removeFromTriplestore(resourceUri, connectorUri);
@@ -297,7 +297,8 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
 
 
         logger.info("Updateing the Connector {} at the Index.", connectorUri); start = System.currentTimeMillis();
-        indexing.update(repositoryFacade.getConnectorFromTripleStore(connectorUri));
+        // old without reduction: indexing.update(repositoryFacade.getConnectorFromTripleStore(connectorUri));
+        indexing.update(repositoryFacade.getReducedConnector(connectorUri, maxNumberOfIndexedConnectorResources));
         logger.info("Finished Updateing the Connector {} at the Index ("+(System.currentTimeMillis()-start)+" ms).", connectorUri);
 
 

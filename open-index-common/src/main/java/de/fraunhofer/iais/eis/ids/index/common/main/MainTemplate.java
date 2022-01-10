@@ -47,13 +47,13 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
 
     public MultipartComponentInteractor multipartComponentInteractor;
 
-    @Value("${ssl.javakeystore}")
-    public static String javaKeystorePath;
+//    @Value("${ssl.javakeystore}")
+//    public static String javaKeystorePath;
     public static FileInputStream javakeystore;
 
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public MainTemplate(String javakeystorepath) {
+/*    public MainTemplate(String javakeystorepath) {
         try {
             this.javakeystore = new FileInputStream(new File(javakeystorepath));
             logger.info("Found KeyStore at {}.", javakeystorepath);
@@ -61,7 +61,7 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
             logger.warn("Could not find a KeyStore at {}.", javakeystorepath);
         }
     }
-
+*/
 
     /**
      * This function generates a default self-description and can be overridden by child classes

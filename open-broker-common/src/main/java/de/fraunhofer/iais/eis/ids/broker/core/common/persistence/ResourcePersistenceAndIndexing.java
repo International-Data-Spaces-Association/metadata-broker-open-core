@@ -264,20 +264,46 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
     //TODO: ResourceUnavailableValidationStrategy? Need to make sure that one cannot delete another connector's resources
     @Override
     public void unavailable(URI resourceUri, URI connectorUri) throws IOException, RejectMessageException {
+
+
+        logger.info("Checking if Connector Graph is active."); long start = System.currentTimeMillis();
+        // Check if the originally supplied ConnectorURI is in an active graph
         if(!repositoryFacade.graphIsActive(connectorUri.toString()))
         {
+            // if not, rewrite it with the default pattern for internal Connector URIs
             connectorUri = URI.create(componentCatalogUri.toString() + connectorUri.hashCode());
         }
+        logger.info("Check performed ("+(System.currentTimeMillis()-start)+" ms). Graph URI: " + connectorUri);
+
+
+        logger.info("Checking if Connector Graph is active."); start = System.currentTimeMillis();
+        // Check if the overwritten ConnectorURI is in now an active graph. If this also fails, we cannot proceed the  request.
         if(!repositoryFacade.graphIsActive(connectorUri.toString()))
         {
             throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector from which you are trying to sign off a resource was not found or is not active."));
         }
+        logger.info("Check with overwritten Connector URI executed ("+(System.currentTimeMillis()-start)+" ms).");
+
+        logger.info("Checking if Resource ({}) exists.", resourceUri); start = System.currentTimeMillis();
+        URI originalResourceUri = resourceUri;
         if(!resourceExists(resourceUri)) {
             resourceUri = tryGetRewrittenResourceUri(connectorUri, resourceUri);
         }
+        logger.info("Finished the check for Resource ({}, orginally {}) exists (\"+(System.currentTimeMillis()-start)+\" ms).", resourceUri, originalResourceUri);
+
+        logger.info("Removing {} from the Triplestore.", resourceUri); start = System.currentTimeMillis();
         removeFromTriplestore(resourceUri, connectorUri);
+        logger.info("Finished removing {} from the Triplestore ("+(System.currentTimeMillis()-start)+" ms).", resourceUri);
+
+
+        logger.info("Updateing the Connector {} at the Index.", connectorUri); start = System.currentTimeMillis();
         indexing.update(repositoryFacade.getConnectorFromTripleStore(connectorUri));
+        logger.info("Finished Updateing the Connector {} at the Index ("+(System.currentTimeMillis()-start)+" ms).", connectorUri);
+
+
+        logger.info("Deleting the Resource {} from the resources Index.", resourceUri); start = System.currentTimeMillis();
         indexing.delete(resourceUri);
+        logger.info("Finished deleting the Resource {} from the resources Index ("+(System.currentTimeMillis()-start)+" ms).", resourceUri);
     }
 
     /**

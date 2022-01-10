@@ -7,12 +7,17 @@ import de.fraunhofer.iais.eis.ids.component.ecosystemintegration.daps.tokenrenew
 import de.fraunhofer.iais.eis.ids.component.interaction.multipart.MultipartComponentInteractor;
 import de.fraunhofer.iais.eis.ids.component.protocol.http.server.ComponentInteractorProvider;
 import de.fraunhofer.iais.eis.ids.index.common.impl.IndexSelfDescription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.solr.SolrAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -43,9 +48,18 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
     public MultipartComponentInteractor multipartComponentInteractor;
 
     @Value("${ssl.javakeystore}")
-    public static FileInputStream javakeystore;
+    public static String javaKeystorePath;
+    private static FileInputStream javakeystore;
 
-    public MainTemplate(FileInputStream javakeystore) {
+    Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    public MainTemplate(String javakeystorepath) {
+        try {
+            this.javakeystore = new FileInputStream(new File(javakeystorepath));
+            logger.info("Found KeyStore at {}.", javakeystorepath);
+        } catch (FileNotFoundException e) {
+            logger.warn("Could not find a KeyStore at {}.", javakeystorepath);
+        }
     }
 
 
@@ -71,8 +85,7 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
     public SecurityTokenProvider createSecurityTokenProvider()
     {
         return new DapsSecurityTokenProvider(
-
-                        javakeystore,
+                javakeystore,
                 keystorePassword,
                 keystoreAlias,
                 dapsUrl,

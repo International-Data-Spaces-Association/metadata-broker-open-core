@@ -32,6 +32,9 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
 
     private int maxNumberOfIndexedConnectorResources;
 
+    private boolean refreshAtBeginning;
+    private int refreshHours;
+
     private final RepositoryFacade repositoryFacade;
     private Indexing<InfrastructureComponent> indexing;
 
@@ -39,26 +42,78 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
 
     static Map<URI, URI> replacedIds;
 
+
+    /**
+     * Constructor
+     *
+     * @param repositoryFacade
+     * @param componentCatalogUri
+     * @param indexing
+     * @param maxNumberOfIndexedConnectorResources
+     */
+    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade,
+                                                 URI componentCatalogUri,
+                                                 Indexing<InfrastructureComponent> indexing,
+                                                 int maxNumberOfIndexedConnectorResources) {
+        this(repositoryFacade, componentCatalogUri, indexing,
+                maxNumberOfIndexedConnectorResources, false, 0);
+    }
+
+
     /**
      * Constructor
      *
      * @param repositoryFacade repository (triple store) to which the modifications should be stored
+     * @param componentCatalogUri
+     * @param indexing
+     * @param maxNumberOfIndexedConnectorResources
+     * @param refreshAtBeginning
+     * @param refreshHours
      */
-    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade, URI componentCatalogUri, Indexing<InfrastructureComponent> indexing, int maxNumberOfIndexedConnectorResources) {
+    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade,
+                                                 URI componentCatalogUri,
+                                                 Indexing<InfrastructureComponent> indexing,
+                                                 int maxNumberOfIndexedConnectorResources,
+                                                 boolean refreshAtBeginning,
+                                                 int refreshHours) {
         this.repositoryFacade = repositoryFacade;
         this.indexing = indexing;
         this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
         SelfDescriptionPersistenceAndIndexing.componentCatalogUri = componentCatalogUri;
         Date date = new Date();
-        Timer timer = new Timer();
 
-        //Regularly recreate the index to keep index and triple store in sync
-        //The triple store is considered as single source of truth, so the index is dropped and recreated from the triple store
-        timer.schedule(new TimerTask() {
-            public void run() {
-                refreshIndex();
-            }
-        }, date, 12 * 60 * 60 * 1000); //12*60*60*1000 add 12 hours delay between job executions.
+        // 1. refresh at beginning, refreshHours > 0
+        if (refreshAtBeginning && refreshHours > 0) {
+            Timer timer = new Timer();
+
+            //Regularly recreate the index to keep index and triple store in sync
+            //The triple store is considered as single source of truth, so the index is dropped and recreated from the triple store
+            timer.schedule(new TimerTask() {
+                public void run() {
+                    refreshIndex();
+                }
+            }, date, refreshHours * 60 * 60 * 1000); //12*60*60*1000 add 12 hours delay between job executions.
+        } else
+        // 2. refresh at beginning, refreshHours = 0 --> no periodical refreshing
+        if(refreshAtBeginning && refreshHours == 0) {
+            refreshIndex();
+        } else
+        // 3. no refresh at beginning, refreshHours > 0
+        if (!refreshAtBeginning && refreshHours > 0) {
+            Timer timer = new Timer();
+            date.setTime(date.getTime() + refreshHours * 60 * 60 * 1000); // the first refresh shall happen after 'refreshHours'
+
+            timer.schedule(new TimerTask() {
+                public void run() {
+                    refreshIndex();
+                }
+            }, date, refreshHours * 60 * 60 * 1000); //12*60*60*1000 add 12 hours delay between job executions.
+        } else
+        // 4. no refreshing at all
+        {
+            // do nothing
+        }
+
 
         Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
     }
@@ -92,7 +147,9 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
             try {
                 indexing.recreateIndex("resources");
             }
-            catch (Exception ignored) {}
+            catch (Exception e) {
+                logger.warn("Could not create an empty 'resources' index: ", e);
+            }
 
             List<String> activeGraphs = repositoryFacade.getActiveGraphs();
             if(activeGraphs.isEmpty()) //Nothing to index. Return here to make sure that in case no active graphs exist, inactive ones are also ignored

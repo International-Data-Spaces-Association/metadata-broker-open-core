@@ -147,7 +147,9 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
             try {
                 indexing.recreateIndex("resources");
             }
-            catch (Exception ignored) {}
+            catch (Exception e) {
+                logger.warn("Could not create an empty 'resources' index: ", e);
+            }
 
             List<String> activeGraphs = repositoryFacade.getActiveGraphs();
             if(activeGraphs.isEmpty()) //Nothing to index. Return here to make sure that in case no active graphs exist, inactive ones are also ignored

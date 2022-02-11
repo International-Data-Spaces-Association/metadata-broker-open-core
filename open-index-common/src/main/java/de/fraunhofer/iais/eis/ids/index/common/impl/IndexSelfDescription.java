@@ -61,7 +61,7 @@ public class IndexSelfDescription implements SelfDescriptionProvider {
     @Override
     public InfrastructureComponent getSelfDescription() {
         ResourceCatalog catalog = new ResourceCatalogBuilder()
-                ._offeredResourceAsObject_(createResourcesList())
+                ._offeredResource_(createResourcesList())
                 .build();
 
         //Host host = new HostBuilder()._protocol_(Protocol.HTTP)._accessUrl_(componentUri).build();
@@ -76,8 +76,8 @@ public class IndexSelfDescription implements SelfDescriptionProvider {
         BrokerBuilder builder = new BrokerBuilder(componentId)
                 ._title_(asList(new TypedLiteral("IDS Metadata Broker", "en")))
                 ._description_(asList(new TypedLiteral("A Broker with a graph persistence layer@en")))
-                ._maintainerAsUri_(maintainerId)
-                ._curatorAsUri_(maintainerId)
+                ._maintainer_(maintainerId)
+                ._curator_(maintainerId)
                 ._inboundModelVersion_(Util.asList(modelVersion))
                 ._outboundModelVersion_(modelVersion)
                 ._resourceCatalog_(Util.asList(catalog))

@@ -40,6 +40,26 @@
             <name>maven-public</name>
             <url>https://maven.iais.fraunhofer.de/artifactory/eis-ids-public</url>
         </repository>
+        <repository>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>eis-ids-public</id>
+            <url>http://maven.iais.fraunhofer.de/artifactory/eis-ids-public</url>
+        </repository>
+        <repository>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>eis-snapshot-repo</id>
+            <url>http://maven.iais.fraunhofer.de/artifactory/eis-ids-public</url>
+        </repository>
     </repositories>
 
     <build>

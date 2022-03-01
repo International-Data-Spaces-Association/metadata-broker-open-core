@@ -63,8 +63,8 @@ public class RdfPersistenceTest {
         }
         return new BaseConnectorBuilder()
                 ._title_(new ArrayList<>(Collections.singletonList(new TypedLiteral("DWD Open Data Connector"))))
-                ._curator_(curator)
-                ._maintainer_(maintainer)
+                ._curatorAsUri_(curator)
+                ._maintainerAsUri_(maintainer)
                 ._outboundModelVersion_("4.0.0")
                 ._inboundModelVersion_(asList("4.0.0"))
                 ._resourceCatalog_(asList(new ResourceCatalogBuilder().build()))

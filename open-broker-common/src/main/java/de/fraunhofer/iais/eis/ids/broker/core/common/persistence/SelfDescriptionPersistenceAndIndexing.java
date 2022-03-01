@@ -334,10 +334,10 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
 
                 Set<Resource> resourcesToHandle = new HashSet<>();
                 if (resourceCatalog.getRequestedResourceAsObject() != null) {  //List<Resource> getRequestedResourceAsObject
-                    resourcesToHandle.addAll(resourceCatalog.getRequestedResourceAsObject());
+                    resourcesToHandle.addAll(resourceCatalog.getRequestedResource());
                 }
                 if (resourceCatalog.getRequestedResource() != null) {  //List<Resource> getRequestedResourceAsObject
-                    resourcesToHandle.addAll(resourceCatalog.getRequestedResourceAsObject());
+                    resourcesToHandle.addAll(resourceCatalog.getRequestedResource());
                 }
                 for (Resource currentResource : resourcesToHandle) {
                     currentString = rewriteResource(currentString, currentResource, catalogUri);

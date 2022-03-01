@@ -22,7 +22,7 @@ import java.net.URISyntaxException;
 
 
 
-public class ResourcePersitenceAndIndexingTest {
+public class ResourcePersistenceAndIndexingTest {
 
     private Model model;
     private ResourcePersistenceAndIndexing resourcePersistenceAndIndexing;
@@ -40,10 +40,10 @@ public class ResourcePersitenceAndIndexingTest {
         model = ModelFactory.createDefaultModel();
 
         exampleResource1 = new DataResourceBuilder(new URI("http://example.org/resource1"))
-                ._sovereignAsUri_(new URI("http://example.org/participant1"))
+                ._sovereign_(new URI("http://example.org/participant1"))
                 .build();
         exampleResource2 = new DataResourceBuilder(new URI("http://example.org/resource2"))
-                ._sovereignAsUri_(new URI("http://example.org/participant1"))
+                ._sovereign_(new URI("http://example.org/participant1"))
                 ._defaultRepresentation_(new RepresentationBuilder()
                         ._description_(new TypedLiteral("description", "en"))
                         ._title_(new TypedLiteral("titel", "en"))
@@ -59,12 +59,12 @@ public class ResourcePersitenceAndIndexingTest {
                 .build();
 
         exampleConnector = new BaseConnectorBuilder(new URI("http://example.org/connector1/"))
-                ._maintainerAsUri_(new URI("http://example.org/participant1"))
-                ._curatorAsUri_(new URI("http://example.org/participant1"))
+                ._maintainer_(new URI("http://example.org/participant1"))
+                ._curator_(new URI("http://example.org/participant1"))
                 ._outboundModelVersion_("4.0.0")
                 ._inboundModelVersion_(Util.asList("4.0.0"))
                 ._resourceCatalog_(Util.asList(new ResourceCatalogBuilder()
-                                ._offeredResourceAsObject_(Util.asList(exampleResource1, exampleResource2))
+                                ._offeredResource_(Util.asList(exampleResource1, exampleResource2))
                         .build()))
                 ._securityProfile_(SecurityProfile.BASE_SECURITY_PROFILE)
                 ._hasDefaultEndpoint_(new ConnectorEndpointBuilder()._accessURL_(new URI("https://example.org/endpoint")).build())

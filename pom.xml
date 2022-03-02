@@ -17,8 +17,8 @@
         <rdf4j.version>3.4.0</rdf4j.version>
         <jena.version>4.1.0</jena.version>
         <ids-components.version>${revision}</ids-components.version>
-        <ids-serializer.version>4.2.8</ids-serializer.version>
-        <ids-java.version>4.2.7</ids-java.version>
+        <ids-serializer.version>5.0.0-SNAPSHOT</ids-serializer.version>
+        <ids-java.version>5.0.0-SNAPSHOT</ids-java.version>
         <spring-boot.version>2.1.16.RELEASE</spring-boot.version>
         <jackson.version>2.11.0</jackson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

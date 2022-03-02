@@ -76,8 +76,8 @@ public class ConnectorManagementTest {
 
         connector = new BaseConnectorBuilder(new URI("http://example.org/connector1"))
                 ._title_(new ArrayList<>(asList(new TypedLiteral("DWD Open Data Connector", "en"))))
-                ._curator_(new URI("http://example.org/participant1"))
-                ._maintainer_(new URI("http://example.org/participant1"))
+                ._curatorAsUri_(new URI("http://example.org/participant1"))
+                ._maintainerAsUri_(new URI("http://example.org/participant1"))
                 ._outboundModelVersion_("3.0.0")
                 ._inboundModelVersion_(asList("3.0.0"))
                 ._resourceCatalog_(asList(new ResourceCatalogBuilder().build()))

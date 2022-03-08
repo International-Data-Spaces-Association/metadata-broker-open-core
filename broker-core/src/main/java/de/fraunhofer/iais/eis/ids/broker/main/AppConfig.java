@@ -14,6 +14,7 @@ import de.fraunhofer.iais.eis.ids.component.ecosystemintegration.daps.JWKSFromIs
 import de.fraunhofer.iais.eis.ids.component.interaction.multipart.MultipartComponentInteractor;
 import de.fraunhofer.iais.eis.ids.component.interaction.validation.ShaclValidator;
 import de.fraunhofer.iais.eis.ids.connector.commons.broker.QueryHandler;
+import de.fraunhofer.iais.eis.ids.index.common.endpoint.FrontendEndpoints;
 import de.fraunhofer.iais.eis.ids.index.common.main.AppConfigTemplate;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.ConstructQueryResultHandler;
 import de.fraunhofer.iais.eis.ids.index.common.persistence.DescriptionProvider;
@@ -58,6 +59,7 @@ public class AppConfig extends AppConfigTemplate {
         //Repository facade is our bridge to the triple store backend
         RepositoryFacade repositoryFacade = new RepositoryFacade(sparqlEndpointUrl);
 
+        FrontendEndpoints.repositoryFacade = repositoryFacade;
         //Object taking care of storing connectors and their resources in a triple store with optional indexing
         SelfDescriptionPersistenceAndIndexing selfDescriptionPersistence = new SelfDescriptionPersistenceAndIndexing(
                 repositoryFacade, catalogUri, indexing, maxNumberOfIndexedConnectorResources);

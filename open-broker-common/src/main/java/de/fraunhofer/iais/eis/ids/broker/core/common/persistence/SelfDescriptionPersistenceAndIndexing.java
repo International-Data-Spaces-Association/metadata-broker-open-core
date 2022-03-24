@@ -396,7 +396,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         }
         //We need to reflect the changes in the index.
         //If the connector was passive before, the document was deleted from the index, so we need to recreate it
-        infrastructureComponent = repositoryFacade.getReducedConnector(infrastructureComponent.getId(), maxNumberOfIndexedConnectorResources);
+        infrastructureComponent = repositoryFacade.getConnectorFromTripleStore(infrastructureComponent.getId());
         if (wasActive) { //Connector exists in index - update it
             try {
                 indexing.update(infrastructureComponent);

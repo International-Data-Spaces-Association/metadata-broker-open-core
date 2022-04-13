@@ -224,9 +224,9 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         }
 
         long start = System.currentTimeMillis();
-        logger.info("Retrieving Full Connector. URI: " + connectorUri);
-        Connector connector = repositoryFacade.getConnectorFromTripleStore(connectorUri);
-        logger.info("Retrieved the Full Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
+        logger.info("Retrieving Reduced Connector. URI: " + connectorUri);
+        Connector connector = repositoryFacade.getReducedConnector(connectorUri, maxNumberOfIndexedConnectorResources);
+        logger.info("Retrieved the Reduced Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
 
         logger.info("Adding Connector to the Connector Index. URI: " + connector.getId());
         start = System.currentTimeMillis();

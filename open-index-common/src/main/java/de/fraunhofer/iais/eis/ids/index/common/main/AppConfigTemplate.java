@@ -30,6 +30,9 @@ public abstract class AppConfigTemplate {
     public int maxNumberOfIndexedConnectorResources = 100; // only the default value
     public boolean refreshAtBeginning;
     public int refreshHours;
+
+    public String refreshAt;
+
     public SecurityTokenProvider securityTokenProvider = new SecurityTokenProvider() {
         @Override
         public String getSecurityToken() {
@@ -53,6 +56,29 @@ public abstract class AppConfigTemplate {
         this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
         this.refreshHours = refreshHours;
         this.refreshAtBeginning = refreshAtBeginning;
+        return this;
+    }
+
+    /**
+     * This function can be used to overwrite the default behaviour of trying to find any indexing in the classpath
+     * @param indexing Desired indexing implementation to be used
+     * @param maxNumberOfIndexedConnectorResources The Connector index is limited to a certain number of contained
+     *                                             resources to ensure acceptable read/write times. This parameter gives
+     *                                             the upper limit. Default is 100
+     * @param refreshAtBeginning checks if Broker needs to refresh the index at the beginning
+     * @param refreshHours how many hours after the Broker starts, it should refresh the index
+     * @param refreshAt regardless of starting time of the Broker, the absolute time when the index should be refreshed
+     * @return AppConfigTemplate with new value set for indexing
+     */
+    public AppConfigTemplate setIndexing(Indexing indexing, int maxNumberOfIndexedConnectorResources,
+                                         boolean refreshAtBeginning, int refreshHours, String refreshAt)
+    {
+        logger.info("Setting indexing to " + indexing.getClass().getSimpleName());
+        this.indexing = indexing;
+        this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
+        this.refreshHours = refreshHours;
+        this.refreshAtBeginning = refreshAtBeginning;
+        this.refreshAt = refreshAt;
         return this;
     }
 

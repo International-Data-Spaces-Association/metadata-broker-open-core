@@ -20,6 +20,9 @@ import java.net.ConnectException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 /**
@@ -34,6 +37,7 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
 
     private boolean refreshAtBeginning;
     private int refreshHours;
+    private String refreshAt;
 
     private final RepositoryFacade repositoryFacade;
     private Indexing<InfrastructureComponent> indexing;
@@ -113,6 +117,87 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         {
             // do nothing
         }
+
+
+        Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
+    }
+
+    /**
+     * Constructor
+     *
+     * @param repositoryFacade repository (triple store) to which the modifications should be stored
+     * @param componentCatalogUri
+     * @param indexing
+     * @param maxNumberOfIndexedConnectorResources
+     * @param refreshAtBeginning
+     * @param refreshHours
+     * @param refreshAt
+     */
+    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade,
+                                                 URI componentCatalogUri,
+                                                 Indexing<InfrastructureComponent> indexing,
+                                                 int maxNumberOfIndexedConnectorResources,
+                                                 boolean refreshAtBeginning,
+                                                 int refreshHours,
+                                                 String refreshAt) {
+        this.repositoryFacade = repositoryFacade;
+        this.indexing = indexing;
+        this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
+        SelfDescriptionPersistenceAndIndexing.componentCatalogUri = componentCatalogUri;
+        Date date = new Date();
+
+        // 1. refresh at beginning, refreshHours > 0
+        if (refreshAtBeginning && refreshHours > 0) {
+            Timer timer = new Timer();
+
+            //Regularly recreate the index to keep index and triple store in sync
+            //The triple store is considered as single source of truth, so the index is dropped and recreated from the triple store
+            timer.schedule(new TimerTask() {
+                public void run() {
+                    refreshIndex();
+                }
+            }, date, refreshHours * 60 * 60 * 1000); //12*60*60*1000 add 12 hours delay between job executions.
+        } else
+            // 2. refresh at beginning, refreshHours = 0 --> no periodical refreshing
+            if(refreshAtBeginning && refreshHours == 0) {
+                refreshIndex();
+            } else
+                // 3. no refresh at beginning, refreshHours > 0
+                if (!refreshAtBeginning && refreshHours > 0) {
+                    Timer timer = new Timer();
+                    date.setTime(date.getTime() + refreshHours * 60 * 60 * 1000); // the first refresh shall happen after 'refreshHours'
+
+                    timer.schedule(new TimerTask() {
+                        public void run() {
+                            refreshIndex();
+                        }
+                    }, date, refreshHours * 60 * 60 * 1000); //12*60*60*1000 add 12 hours delay between job executions.
+                } else
+                    //4. refresh at a certain time of the dat
+                    if(!refreshAt.equals("--:--:--")){ // "--:--:--" is set if the refreshAt feature needs to be disabled
+                        //If time of the Broker is running after the "refreshAt" time then the scheduler will trigger refreshIndex() the next day at "refreshAt" time         *
+                        if(LocalTime.now().isAfter(LocalTime.parse(refreshAt))){
+                            refreshAt = LocalDate.now().plusDays(1).toString()+ " " + refreshAt; //Adds the date of next day as the scheduler date
+                        }else{
+                            refreshAt = LocalDate.now().toString()+ " " + refreshAt; //Creates the complete date with time for the scheduler
+                        }
+                        Timer timer = new Timer();
+                        try{
+                            date.setTime(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(refreshAt).getTime());
+                            timer.schedule(new TimerTask() {
+                                public void run() {
+                                    refreshIndex();
+                                }
+                            }, date, 1 * 15 * 15 * 1000); //24*60*60*1000 add 24 hours delay between job executions.
+                        }catch (Exception e) {
+                            logger.warn("Error parsing the refreshAt time, for index will never be refreshed: ", e);
+                        }
+
+                    }
+                // 4. no refreshing at all
+                {
+                    // do nothing
+                }
 
 
         Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");

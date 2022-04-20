@@ -224,20 +224,15 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         }
 
         long start = System.currentTimeMillis();
-        logger.info("Retrieving Full Connector. URI: " + connectorUri);
-        Connector connector = repositoryFacade.getConnectorFromTripleStore(connectorUri);
-        logger.info("Retrieved the Full Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
+        logger.info("Retrieving Reduced Connector. URI: " + connectorUri);
+        Connector connector = repositoryFacade.getReducedConnector(connectorUri, maxNumberOfIndexedConnectorResources);
+        logger.info("Retrieved the Reduced Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
 
         logger.info("Adding Connector to the Connector Index. URI: " + connector.getId());
-        start = System.currentTimeMillis();
-        indexing.update(connector);
-        logger.info("Finished adding to the Connector Index ("+(System.currentTimeMillis()-start)+" ms). URI: " + connector.getId());
-
         logger.info("Adding Resource to the Resources Index. URI: " + resource.getId());
         start = System.currentTimeMillis();
         indexing.updateResource(connector, resource);
-        logger.info("Finished adding to the Resources Index ("+(System.currentTimeMillis()-start)+" ms). URI: " + resource.getId());
-
+        logger.info("Finished adding to the Connector (" + connector.getId() + ") and to the Resources Index (" + resource.getId() + "). (" +(System.currentTimeMillis()-start) + " ms)");
         //Return the updated resource URI
         return resource.getId();
     }
@@ -289,22 +284,22 @@ public class ResourcePersistenceAndIndexing extends ResourcePersistenceAdapter {
         if(!resourceExists(resourceUri)) {
             resourceUri = tryGetRewrittenResourceUri(connectorUri, resourceUri);
         }
-        logger.info("Finished the check for Resource ({}, orginally {}) exists ("+(System.currentTimeMillis()-start)+" ms).", resourceUri, originalResourceUri);
+        logger.info("Finished the check for Resource ({}, originally {}) exists ("+(System.currentTimeMillis()-start)+" ms).", resourceUri, originalResourceUri);
 
         logger.info("Removing {} from the Triplestore.", resourceUri); start = System.currentTimeMillis();
         removeFromTriplestore(resourceUri, connectorUri);
         logger.info("Finished removing {} from the Triplestore ("+(System.currentTimeMillis()-start)+" ms).", resourceUri);
 
+        start = System.currentTimeMillis();
+        logger.info("Retrieving Reduced Connector. URI: " + connectorUri);
+        Connector connector = repositoryFacade.getReducedConnector(connectorUri, maxNumberOfIndexedConnectorResources);
+        logger.info("Retrieved the Reduced Connector ("+(System.currentTimeMillis()-start)+" ms). URI: " + connectorUri);
 
-        logger.info("Updateing the Connector {} at the Index.", connectorUri); start = System.currentTimeMillis();
-        // old without reduction: indexing.update(repositoryFacade.getConnectorFromTripleStore(connectorUri));
-        indexing.update(repositoryFacade.getReducedConnector(connectorUri, maxNumberOfIndexedConnectorResources));
-        logger.info("Finished Updateing the Connector {} at the Index ("+(System.currentTimeMillis()-start)+" ms).", connectorUri);
-
-
+        logger.info("Updating the Connector {} at the Index.", connectorUri); start = System.currentTimeMillis();
         logger.info("Deleting the Resource {} from the resources Index.", resourceUri); start = System.currentTimeMillis();
-        indexing.delete(resourceUri);
-        logger.info("Finished deleting the Resource {} from the resources Index ("+(System.currentTimeMillis()-start)+" ms).", resourceUri);
+        indexing.deleteResource(connector, resourceUri);
+        logger.info("Finished deleting the Resource {} from the resources Index.", resourceUri);
+        logger.info("Finished Updating the Connector {} at the Index ("+(System.currentTimeMillis()-start)+" ms).", connectorUri);
     }
 
     /**

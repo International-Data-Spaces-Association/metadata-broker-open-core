@@ -412,18 +412,21 @@ public class RepositoryFacade {
         {
             throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not known to this broker or unavailable."));
         }
+        logger.info("Starting SPARQL query to fetch connector from the Fuseki server");
         //Fire the query against our repository
         ParameterizedSparqlString queryString = new ParameterizedSparqlString("CONSTRUCT { ?s ?p ?o . }" +
                 "WHERE { GRAPH ?g { ?s ?p ?o . } } ");
         queryString.setIri("g", connectorUri.toString());
         try {
+            logger.info("Constructing the model");
             Model result = constructQuery(queryString.toString());
-
+            logger.info("Model construction complete");
             //Check if response is empty
             if (result.isEmpty()) {
                 //Result is empty, throw exception. This will result in a RejectionMessage being sent
                 throw new RejectMessageException(RejectionReason.NOT_FOUND);
             }
+
 
             //Generate a connector object from the SPARQL result string (already containing the new resource!). This is a bit of a messy business
             return ConstructQueryResultHandler.GraphQueryResultToConnector(result);
@@ -600,7 +603,9 @@ public class RepositoryFacade {
      */
     public List<String> getActiveGraphs()
     {
+        logger.info("Running SPARQL query to the Fuseki Server to fetch active graphs");
         ArrayList<QuerySolution> resultSet = selectQuery("SELECT ?graph FROM NAMED <" + adminGraphUri + "> WHERE { GRAPH ?g { ?graph <" + graphIsActiveUrl + "> true . } } ");
+        logger.info("SPARQL query to fetch active graphs complete");
         return resultSet.stream().map(result -> result.get("graph").toString()).collect(Collectors.toList());
     }
 

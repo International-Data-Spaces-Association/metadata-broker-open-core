@@ -52,8 +52,12 @@ public class ConstructQueryResultHandler {
     public static Connector GraphQueryResultToConnector(Model result) throws RejectMessageException {
         Serializer s = new Serializer();
 
+        logger.info("Starting deserialization");
+
         try {
-            return s.deserialize(graphToString(result), Connector.class);
+            Connector connector = s.deserialize(graphToString(result), Connector.class);
+            logger.info("Deserialization complete");
+            return connector;
         }
         catch (IOException e)
         {

@@ -151,7 +151,10 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
                 logger.warn("Could not create an empty 'resources' index: ", e);
             }
 
+            logger.info("Fetching active graphs");
+
             List<String> activeGraphs = repositoryFacade.getActiveGraphs();
+            logger.info("Fetching active graphs complete");
             if(activeGraphs.isEmpty()) //Nothing to index. Return here to make sure that in case no active graphs exist, inactive ones are also ignored
             {
                 return;

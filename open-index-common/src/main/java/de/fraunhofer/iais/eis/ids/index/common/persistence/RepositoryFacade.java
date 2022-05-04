@@ -402,7 +402,90 @@ public class RepositoryFacade {
     }
 
     /**
-     * Utility function to obtain an IDS Connector object from the triple store
+     * Utility function to obtain an IDS Connector object with "limit number" of Resources from a particular "offset" from the triple store
+     * @param connectorUri The URI of the connector to be obtained
+     * @param limit number of Resources to put inside the Connector object
+     * @param offset position from which "limit" number of Resources will be taken from the triple store
+     * @return an IDS connector object with specific number of Resources with the requested connectorUri, if it is known to the broker
+     * @throws RejectMessageException if the connector is not known to the broker, or if the parsing fails
+     */
+    public Connector getConnectorFromTripleStore(URI connectorUri, int limit, int offset) throws RejectMessageException {
+        if(!graphIsActive(connectorUri.toString()))
+        {
+            throw new RejectMessageException(RejectionReason.NOT_FOUND, new NullPointerException("The connector with URI " + connectorUri + " is not known to this broker or unavailable."));
+        }
+        logger.info("Starting SPARQL query to fetch connector from the Fuseki server");
+        //Fire the query against our repository
+        ParameterizedSparqlString queryString = new ParameterizedSparqlString("prefix ids: <https://w3id.org/idsa/core/>\n" +
+                "\n" +
+                "CONSTRUCT {?subject ?predicate ?object}\n" +
+                "WHERE {\n" +
+                "  graph ?g {\n" +
+                "    {\n" +
+                "      #This part is to get everything under the connector, other than any Resource\n" +
+                "      {\n" +
+                "      SELECT *\n" +
+                "      WHERE {        \n" +
+                "        ?subject ?predicate ?object.\n" +
+                "      }\n" +
+                "    }\n" +
+                "    MINUS\n" +
+                "    {\n" +
+                "      {\n" +
+                "      SELECT *\n" +
+                "      WHERE {        \n" +
+                "        ?subject ?predicate ?object.\n" +
+                "        ?x a ids:DataResource. \n" +
+                "      }\n" +
+                "      \n" +
+                "    }      \n" +
+                "    FILTER (CONTAINS (str(?subject), REPLACE(str(?x), \"\", \"\")) || CONTAINS (str(?object), REPLACE(str(?x), \"\", \"\"))) \n" +
+                "    }\n" +
+                "    }UNION{\n" +
+                "      #This part is to get number(LIMIT) of Resource(s) from the OFFSET\n" +
+                "      {\n" +
+                "        SELECT *\n" +
+                "        WHERE {       \n" +
+                "          ?subject ?predicate ?object      \n" +
+                "        }    \n" +
+                "      }   \n" +
+                "      {     \n" +
+                "        SELECT *    \n" +
+                "        WHERE{   \n" +
+                "          ?x a ids:DataResource.    \n" +
+                "        }    \n" +
+                "        LIMIT " + limit + "\n" +
+                "        OFFSET " + offset + "\n" +
+                "      }   \n" +
+                "      FILTER (CONTAINS (str(?subject), REPLACE(str(?x), \"\", \"\")) || CONTAINS (str(?object), REPLACE(str(?x), \"\", \"\")) ) \n" +
+                "    }               \n" +
+                "  } \n" +
+                "}");
+        queryString.setIri("g", connectorUri.toString());
+        try {
+            logger.info("Constructing the model");
+            Model result = constructQuery(queryString.toString());
+            logger.info("Model construction complete");
+            //Check if response is empty
+            if (result.isEmpty()) {
+
+                //Result is empty, throw exception. This will result in a RejectionMessage being sent
+                throw new RejectMessageException(RejectionReason.NOT_FOUND);
+            }
+
+
+            //Generate a connector object from the SPARQL result string (already containing the new resource!). This is a bit of a messy business
+            return ConstructQueryResultHandler.GraphQueryResultToConnector(result);
+        }
+        catch (ARQException e)
+        {
+            logger.warn("Potential SPARQL injection attack detected.", e);
+            throw new RejectMessageException(RejectionReason.MALFORMED_MESSAGE);
+        }
+    }
+
+    /**
+     * Utility function to obtain an IDS Connector object with all the Resources from the triple store
      * @param connectorUri The URI of the connector to be obtained
      * @return an IDS connector object with the requested connectorUri, if it is known to the broker
      * @throws RejectMessageException if the connector is not known to the broker, or if the parsing fails
@@ -414,7 +497,7 @@ public class RepositoryFacade {
         }
         logger.info("Starting SPARQL query to fetch connector from the Fuseki server");
         //Fire the query against our repository
-        ParameterizedSparqlString queryString = new ParameterizedSparqlString("CONSTRUCT { ?s ?p ?o . }" +
+        ParameterizedSparqlString queryString = new ParameterizedSparqlString("prefix ids:   <https://w3id.org/idsa/core/> \nCONSTRUCT { ?s ?p ?o . }" +
                 "WHERE { GRAPH ?g { ?s ?p ?o . } } ");
         queryString.setIri("g", connectorUri.toString());
         try {
@@ -423,6 +506,7 @@ public class RepositoryFacade {
             logger.info("Model construction complete");
             //Check if response is empty
             if (result.isEmpty()) {
+
                 //Result is empty, throw exception. This will result in a RejectionMessage being sent
                 throw new RejectMessageException(RejectionReason.NOT_FOUND);
             }
@@ -607,6 +691,17 @@ public class RepositoryFacade {
         ArrayList<QuerySolution> resultSet = selectQuery("SELECT ?graph FROM NAMED <" + adminGraphUri + "> WHERE { GRAPH ?g { ?graph <" + graphIsActiveUrl + "> true . } } ");
         logger.info("SPARQL query to fetch active graphs complete");
         return resultSet.stream().map(result -> result.get("graph").toString()).collect(Collectors.toList());
+    }
+
+    /**
+     * Utility function to return a list of all the Resources for a specific Connector
+     * @param connectorURI the URI of the target Connector
+     * @return list of all the Resources under connectorURI
+     */
+    public List<String> getResouces(URI connectorURI){
+        ArrayList<QuerySolution> resultSet = selectQuery("prefix ids: <https://w3id.org/idsa/core/>\n"+
+                "SELECT ?subject WHERE { graph <" + connectorURI + "> { ?subject a ids:DataResource } }");
+        return resultSet.stream().map(result -> result.get("subject").toString()).collect(Collectors.toList());
     }
 
     /**

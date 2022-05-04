@@ -34,6 +34,8 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
 
     private boolean refreshAtBeginning;
     private int refreshHours;
+    private int limit;
+
 
     private final RepositoryFacade repositoryFacade;
     private Indexing<InfrastructureComponent> indexing;
@@ -118,6 +120,66 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
         Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
     }
 
+    /**
+     * Constructor
+     *
+     * @param repositoryFacade repository (triple store) to which the modifications should be stored
+     * @param componentCatalogUri
+     * @param indexing
+     * @param maxNumberOfIndexedConnectorResources
+     * @param refreshAtBeginning
+     * @param refreshHours
+     */
+    public SelfDescriptionPersistenceAndIndexing(RepositoryFacade repositoryFacade,
+                                                 URI componentCatalogUri,
+                                                 Indexing<InfrastructureComponent> indexing,
+                                                 int maxNumberOfIndexedConnectorResources,
+                                                 boolean refreshAtBeginning,
+                                                 int refreshHours,
+                                                 int limit) {
+        this.repositoryFacade = repositoryFacade;
+        this.indexing = indexing;
+        this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
+        SelfDescriptionPersistenceAndIndexing.componentCatalogUri = componentCatalogUri;
+        Date date = new Date();
+        this.limit = limit;
+
+        // 1. refresh at beginning, refreshHours > 0
+        if (refreshAtBeginning && refreshHours > 0) {
+            Timer timer = new Timer();
+
+            //Regularly recreate the index to keep index and triple store in sync
+            //The triple store is considered as single source of truth, so the index is dropped and recreated from the triple store
+            timer.schedule(new TimerTask() {
+                public void run() {
+                    refreshIndex();
+                }
+            }, date, refreshHours * 60 * 60 * 1000); //12*60*60*1000 add 12 hours delay between job executions.
+        } else
+            // 2. refresh at beginning, refreshHours = 0 --> no periodical refreshing
+            if(refreshAtBeginning && refreshHours == 0) {
+                refreshIndex();
+            } else
+                // 3. no refresh at beginning, refreshHours > 0
+                if (!refreshAtBeginning && refreshHours > 0) {
+                    Timer timer = new Timer();
+                    date.setTime(date.getTime() + refreshHours * 60 * 60 * 1000); // the first refresh shall happen after 'refreshHours'
+
+                    timer.schedule(new TimerTask() {
+                        public void run() {
+                            refreshIndex();
+                        }
+                    }, date, refreshHours * 60 * 60 * 1000); //12*60*60*1000 add 12 hours delay between job executions.
+                } else
+                // 4. no refreshing at all
+                {
+                    // do nothing
+                }
+
+
+        Serializer.addKnownNamespace("owl", "http://www.w3.org/2002/07/owl#");
+    }
+
     public void setIndexing(Indexing<InfrastructureComponent> indexing)
     {
         this.indexing = indexing;
@@ -163,9 +225,29 @@ public class SelfDescriptionPersistenceAndIndexing extends SelfDescriptionPersis
             //Iterate over all active graphs, i.e. non-passivated and non-deleted graphs
             for (String graph : activeGraphs) {
                 try { //Do a try-catch here, so that one problematic connector does not destroy the entire reindexing process
+                    List<String> resources = repositoryFacade.getResouces(new URI(graph));
+                    int offset = 0;
                     //Add each connector to the index
                     logger.info("Adding connector " + graph + " to index.");
-                    indexing.add(repositoryFacade.getConnectorFromTripleStore(new URI(graph)));
+                    if(limit < 1){
+                        logger.warn("The number of limit for the reindex batch is INVALID. Reindex will be triggered with all the available Resources at once");
+                        limit = resources.size();
+                        indexing.add(repositoryFacade.getConnectorFromTripleStore(new URI(graph), limit, offset));
+                    }else if(limit >= resources.size()){
+                        limit = resources.size();
+                        indexing.add(repositoryFacade.getConnectorFromTripleStore(new URI(graph), limit, offset));
+                    }else{
+                        while(true){
+                            if(offset+limit >= resources.size()){
+                                limit = resources.size()-offset;
+                                indexing.add(repositoryFacade.getConnectorFromTripleStore(new URI(graph), limit, offset));
+                                break;
+                            }
+                            indexing.add(repositoryFacade.getConnectorFromTripleStore(new URI(graph), limit, offset));
+                            offset+=limit;
+                        }
+                    }
+                    //indexing.add(repositoryFacade.getConnectorFromTripleStore(new URI(graph)));
                 }
                 catch (IOException | URISyntaxException | RejectMessageException e) {
                     logger.error("Failed to re-index connector " + graph, e);

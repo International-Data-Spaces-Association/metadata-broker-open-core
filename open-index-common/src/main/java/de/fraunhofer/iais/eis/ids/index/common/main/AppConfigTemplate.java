@@ -30,6 +30,7 @@ public abstract class AppConfigTemplate {
     public int maxNumberOfIndexedConnectorResources = 100; // only the default value
     public boolean refreshAtBeginning;
     public int refreshHours;
+    public int limit;
     public SecurityTokenProvider securityTokenProvider = new SecurityTokenProvider() {
         @Override
         public String getSecurityToken() {
@@ -46,13 +47,14 @@ public abstract class AppConfigTemplate {
      * @return AppConfigTemplate with new value set for indexing
      */
     public AppConfigTemplate setIndexing(Indexing indexing, int maxNumberOfIndexedConnectorResources,
-                                         boolean refreshAtBeginning, int refreshHours)
+                                         boolean refreshAtBeginning, int refreshHours, int limit)
     {
         logger.info("Setting indexing to " + indexing.getClass().getSimpleName());
         this.indexing = indexing;
         this.maxNumberOfIndexedConnectorResources = maxNumberOfIndexedConnectorResources;
         this.refreshHours = refreshHours;
         this.refreshAtBeginning = refreshAtBeginning;
+        this.limit = limit;
         return this;
     }
 

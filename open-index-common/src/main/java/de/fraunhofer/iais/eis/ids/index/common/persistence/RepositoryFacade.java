@@ -462,6 +462,7 @@ public class RepositoryFacade {
                 "  } \n" +
                 "}");
         queryString.setIri("g", connectorUri.toString());
+        logger.info("Retrieved Connector " + connectorUri.toString() + " with " + limit + " number of Resources in a batch");
         try {
             logger.info("Constructing the model");
             Model result = constructQuery(queryString.toString());

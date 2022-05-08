@@ -39,6 +39,8 @@ public abstract class MainTemplate implements ComponentInteractorProvider {
     public String elasticsearchHostname;
     public boolean refreshAtBeginning;
     public int refreshHours;
+
+    public int limit;
     public int elasticsearchPort;
     public String keystorePassword, keystoreAlias;
 

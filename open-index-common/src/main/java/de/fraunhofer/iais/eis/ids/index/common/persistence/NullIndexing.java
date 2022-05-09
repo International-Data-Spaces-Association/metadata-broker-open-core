@@ -1,6 +1,7 @@
 package de.fraunhofer.iais.eis.ids.index.common.persistence;
 
 
+import java.io.IOException;
 import java.net.URI;
 
 import de.fraunhofer.iais.eis.Connector;
@@ -38,6 +39,10 @@ public class NullIndexing<T> implements Indexing<T> {
         logger.info("Delete from index IGNORED.");
     }
 
+    @Override
+    public void deleteResource(Connector reducedConnector, URI resourceId) throws IOException {
+        logger.info("Delete Resource from index IGNORED.");
+    }
 
     @Override
     public void recreateIndex(String indexName) {

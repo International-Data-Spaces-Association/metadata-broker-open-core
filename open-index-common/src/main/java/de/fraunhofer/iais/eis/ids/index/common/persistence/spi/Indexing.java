@@ -50,6 +50,14 @@ public interface Indexing<T> {
     void delete(URI objectId) throws IOException;
 
     /**
+     * Function for removing a resource from the index
+     * @param reducedConnector Connector with resources as list of URIs
+     * @param resourceId URI of the Resource to be deleted
+     * @throws IOException if the resource could not be deleted, e.g. because it was not found
+     */
+    void deleteResource( Connector reducedConnector, URI resourceId ) throws IOException;
+
+    /**
      * Function for recreating the entire index from the current state of the repository (triple store). This helps keeping database and index in sync
      * @param indexName name of the index to be recreated
      * @throws IOException may be thrown if an exception occurs during the dropping or recreation of the index

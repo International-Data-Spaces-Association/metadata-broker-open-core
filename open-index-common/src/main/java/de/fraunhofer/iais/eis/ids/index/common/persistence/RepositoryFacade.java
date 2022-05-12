@@ -142,13 +142,36 @@ public class RepositoryFacade {
     public RDFConnection getNewWritableConnection()
     {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
-            return RDFConnectionFactory.connectFuseki(sparqlUrl);
-            //return RDFConnectionFactory.connectFuseki(sparqlUrl);
+            String url = sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql";
+            Integer counter=0;
+            while (counter<3) {
+                try{
+                    logger.info("Trying to establish a connection to Fuseki server with url " + sparqlUrl);
+                    RDFConnection connection = RDFConnectionFactory.connectFuseki(sparqlUrl);
+                    return connection;
+                }
+                catch (QueryExceptionHTTP e) {
+                    logger.info("unable to establish a connection to Fuseki server with url " + url);
+                    counter += 1;
+                    if (counter <3) {
+                        try {
+                            wait(10000);
+                        } catch (InterruptedException ex) {
+                            ex.printStackTrace();
+                        }
+                    } else {
+                        logger.info("stop trying to establish connection ");
+                        throw e;
+                    }
+                }
+            }
+
         } else
         if(dataset == null)
         {
             dataset = DatasetFactory.create();
         }
+
         return RDFConnectionFactory.connect(dataset);
     }
 

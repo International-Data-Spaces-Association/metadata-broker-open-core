@@ -43,6 +43,13 @@ public class RepositoryFacade {
 
     private static boolean writableConnectionWarningPrinted = false;
 
+    // A simple query string that is used to validate the existence of a valid connection to a fuseki server
+    private static final String TEST_CONNECTION_STRING = "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
+            "select *\n" +
+            "WHERE {\n" +
+            "  BIND(xsd:dateTime(NOW()) AS ?date)\n" +
+            "}";
+
     private static final String CONNECTOR_QUERY_HATEOS_BEGINNING =
             "PREFIX ids: <https://w3id.org/idsa/core/> \n" +
             "PREFIX owl: <http://www.w3.org/2002/07/owl#>\n" +
@@ -145,33 +152,36 @@ public class RepositoryFacade {
             String url = sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql";
             Integer counter=0;
             Integer counterThreshold = 3;
+            logger.info("Trying to establish a connection to Fuseki server with url " + sparqlUrl);
             while (counter<counterThreshold) {
                 try{
-                    logger.info("Trying to establish a connection to Fuseki server with url " + sparqlUrl);
                     RDFConnection connection = RDFConnectionFactory.connectFuseki(sparqlUrl);
+                    String queryString = "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
+                                            "select *\n" +
+                                            "WHERE {\n" +
+                                            "  BIND(xsd:dateTime(NOW()) AS ?date)\n" +
+                                            "}";
+                    connection.query(this.TEST_CONNECTION_STRING).execSelect();
+                    logger.info("Connection successfully established...");
                     return connection;
                 }
                 catch (QueryExceptionHTTP e) {
-                    if(e.getCause() instanceof HttpHostConnectException) //Did we get something like a connectionRefused error?
-                    {
-                        logger.info("unable to establish a connection to Fuseki server with url " + url);
+                    logger.info("unable to establish a connection to Fuseki server with url " + url);
 
-                        if (counter < counterThreshold - 1) {
-                            try {
-                                logger.info("retry to establish connection to Fuseki server in 5 seconds");
-                                wait(5000);
-                            } catch (InterruptedException ex) {
-                                ex.printStackTrace();
-                            }
-
-                            counter += 1;
-                        } else {
-                            logger.info("stop trying to establish connection ");
-                            throw e;
+                    if (counter < counterThreshold - 1) {
+                        try {
+                            logger.info("retry to establish connection to Fuseki server in 5 seconds");
+                            Thread.sleep(5000);
+                        } catch (InterruptedException ex) {
+                            ex.printStackTrace();
                         }
+
+                        counter += 1;
                     } else {
+                        logger.info("stop trying to establish connection ");
                         throw e;
                     }
+
                 }
             }
 
@@ -195,33 +205,29 @@ public class RepositoryFacade {
             String url = sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql";
             Integer counter=0;
             Integer counterThreshold = 3;
+            logger.info("Trying to establish a connection to Fuseki server with url " + url);
             while (counter<counterThreshold) {
                 try{
                     //read only endpoint: host:port/dataset/sparql
-
-                    logger.info("Trying to establish a connection to Fuseki server with url " + url);
                     RDFConnection connection =  RDFConnectionFactory.connectFuseki(url);
+                    connection.query(this.TEST_CONNECTION_STRING).execSelect();
+                    logger.info("Connection successfully established...");
                     return connection;
                 }
                 catch (QueryExceptionHTTP e) {
-                    if(e.getCause() instanceof HttpHostConnectException) //Did we get something like a connectionRefused error?
-                    {
-                        logger.info("unable to establish a connection to Fuseki server with url " + url);
+                    logger.info("unable to establish a connection to Fuseki server with url " + url);
 
-                        if (counter < counterThreshold - 1) {
-                            try {
-                                logger.info("retry to establish connection to Fuseki server in 5 seconds");
-                                wait(5000);
-                            } catch (InterruptedException ex) {
-                                ex.printStackTrace();
-                            }
-
-                            counter += 1;
-                        } else {
-                            logger.info("stop trying to establish connection ");
-                            throw e;
+                    if (counter < counterThreshold - 1) {
+                        try {
+                            logger.info("retry to establish connection to Fuseki server in 5 seconds");
+                            Thread.sleep(5000);
+                        } catch (InterruptedException ex) {
+                            ex.printStackTrace();
                         }
+
+                        counter += 1;
                     } else {
+                        logger.info("stop trying to establish connection ");
                         throw e;
                     }
                 }

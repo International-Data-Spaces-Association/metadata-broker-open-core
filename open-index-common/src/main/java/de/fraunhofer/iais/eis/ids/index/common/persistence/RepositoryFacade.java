@@ -144,23 +144,32 @@ public class RepositoryFacade {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
             String url = sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql";
             Integer counter=0;
-            while (counter<3) {
+            Integer counterThreshold = 3;
+            while (counter<counterThreshold) {
                 try{
                     logger.info("Trying to establish a connection to Fuseki server with url " + sparqlUrl);
                     RDFConnection connection = RDFConnectionFactory.connectFuseki(sparqlUrl);
                     return connection;
                 }
                 catch (QueryExceptionHTTP e) {
-                    logger.info("unable to establish a connection to Fuseki server with url " + url);
-                    counter += 1;
-                    if (counter <3) {
-                        try {
-                            wait(10000);
-                        } catch (InterruptedException ex) {
-                            ex.printStackTrace();
+                    if(e.getCause() instanceof HttpHostConnectException) //Did we get something like a connectionRefused error?
+                    {
+                        logger.info("unable to establish a connection to Fuseki server with url " + url);
+
+                        if (counter < counterThreshold - 1) {
+                            try {
+                                logger.info("retry to establish connection to Fuseki server in 5 seconds");
+                                wait(5000);
+                            } catch (InterruptedException ex) {
+                                ex.printStackTrace();
+                            }
+
+                            counter += 1;
+                        } else {
+                            logger.info("stop trying to establish connection ");
+                            throw e;
                         }
                     } else {
-                        logger.info("stop trying to establish connection ");
                         throw e;
                     }
                 }
@@ -185,7 +194,8 @@ public class RepositoryFacade {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
             String url = sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql";
             Integer counter=0;
-            while (counter<3) {
+            Integer counterThreshold = 3;
+            while (counter<counterThreshold) {
                 try{
                     //read only endpoint: host:port/dataset/sparql
 
@@ -194,16 +204,24 @@ public class RepositoryFacade {
                     return connection;
                 }
                 catch (QueryExceptionHTTP e) {
-                    logger.info("unable to establish a connection to Fuseki server with url " + url);
-                    counter += 1;
-                    if (counter <3) {
-                        try {
-                            wait(10000);
-                        } catch (InterruptedException ex) {
-                            ex.printStackTrace();
+                    if(e.getCause() instanceof HttpHostConnectException) //Did we get something like a connectionRefused error?
+                    {
+                        logger.info("unable to establish a connection to Fuseki server with url " + url);
+
+                        if (counter < counterThreshold - 1) {
+                            try {
+                                logger.info("retry to establish connection to Fuseki server in 5 seconds");
+                                wait(5000);
+                            } catch (InterruptedException ex) {
+                                ex.printStackTrace();
+                            }
+
+                            counter += 1;
+                        } else {
+                            logger.info("stop trying to establish connection ");
+                            throw e;
                         }
                     } else {
-                        logger.info("stop trying to establish connection ");
                         throw e;
                     }
                 }
@@ -706,21 +724,8 @@ public class RepositoryFacade {
 
         logger.debug("Asking whether admin graph exists yet.");
         boolean graphExists = false;
-        try {
-            graphExists = booleanQuery("ASK WHERE { GRAPH <" + adminGraphUri.toString() + "> {?s ?p ?o .} }");
-        }
-        catch (QueryExceptionHTTP e)
-        {
-            if(e.getCause() instanceof HttpHostConnectException) //Did we get something like a connectionRefused error?
-            {
-                logger.warn("Could not establish connection to " + sparqlUrl + " - changing configuration to use local repository instead");
-                sparqlUrl = "";
-            }
-            else
-            {
-                throw e;
-            }
-        }
+
+        graphExists = booleanQuery("ASK WHERE { GRAPH <" + adminGraphUri.toString() + "> {?s ?p ?o .} }");
 
         if(!graphExists) {
             logger.info("Admin graph does not yet exist. Initializing it with one statement.");

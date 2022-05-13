@@ -44,11 +44,7 @@ public class RepositoryFacade {
     private static boolean writableConnectionWarningPrinted = false;
 
     // A simple query string that is used to validate the existence of a valid connection to a fuseki server
-    private static final String TEST_CONNECTION_STRING = "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
-            "select *\n" +
-            "WHERE {\n" +
-            "  BIND(xsd:dateTime(NOW()) AS ?date)\n" +
-            "}";
+    private static final String TEST_CONNECTION_STRING = "ASK WHERE { GRAPH <test> {?s ?p ?o .} }";
 
     private static final String CONNECTOR_QUERY_HATEOS_BEGINNING =
             "PREFIX ids: <https://w3id.org/idsa/core/> \n" +
@@ -149,21 +145,18 @@ public class RepositoryFacade {
     public RDFConnection getNewWritableConnection()
     {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
-            String url = sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql";
+            String url = sparqlUrl;
             Integer counter=0;
             Integer counterThreshold = 3;
-            logger.info("Trying to establish a connection to Fuseki server with url " + sparqlUrl);
+            logger.info("Trying to establish a connection to Fuseki server with url " + url);
             while (counter<counterThreshold) {
                 try{
-                    RDFConnection connection = RDFConnectionFactory.connectFuseki(sparqlUrl);
-                    String queryString = "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
-                                            "select *\n" +
-                                            "WHERE {\n" +
-                                            "  BIND(xsd:dateTime(NOW()) AS ?date)\n" +
-                                            "}";
-                    connection.query(this.TEST_CONNECTION_STRING).execSelect();
+                    RDFConnection connection = RDFConnectionFactory.connectFuseki(url);
+                    connection.queryAsk(this.TEST_CONNECTION_STRING);
                     logger.info("Connection successfully established...");
-                    return connection;
+                    connection.close();
+                    connection.end();
+                    return RDFConnectionFactory.connectFuseki(url);
                 }
                 catch (QueryExceptionHTTP e) {
                     logger.info("unable to establish a connection to Fuseki server with url " + url);
@@ -210,9 +203,11 @@ public class RepositoryFacade {
                 try{
                     //read only endpoint: host:port/dataset/sparql
                     RDFConnection connection =  RDFConnectionFactory.connectFuseki(url);
-                    connection.query(this.TEST_CONNECTION_STRING).execSelect();
+                    connection.queryAsk(this.TEST_CONNECTION_STRING);
                     logger.info("Connection successfully established...");
-                    return connection;
+                    connection.close();
+                    connection.end();
+                    return RDFConnectionFactory.connectFuseki(url);
                 }
                 catch (QueryExceptionHTTP e) {
                     logger.info("unable to establish a connection to Fuseki server with url " + url);
@@ -227,7 +222,7 @@ public class RepositoryFacade {
 
                         counter += 1;
                     } else {
-                        logger.info("stop trying to establish connection ");
+                        logger.info("stop trying to establish connection and throw exception ... ");
                         throw e;
                     }
                 }

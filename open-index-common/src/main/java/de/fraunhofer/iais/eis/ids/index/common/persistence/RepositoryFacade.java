@@ -28,6 +28,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -41,6 +42,9 @@ public class RepositoryFacade {
     private Dataset dataset;
 
     private static boolean writableConnectionWarningPrinted = false;
+
+    // A simple query string that is used to validate the existence of a valid connection to a fuseki server
+    private static final String TEST_CONNECTION_STRING = "ASK WHERE { GRAPH <test> {?s ?p ?o .} }";
 
     private static final String CONNECTOR_QUERY_HATEOS_BEGINNING =
             "PREFIX ids: <https://w3id.org/idsa/core/> \n" +
@@ -141,13 +145,45 @@ public class RepositoryFacade {
     public RDFConnection getNewWritableConnection()
     {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
-            return RDFConnectionFactory.connectFuseki(sparqlUrl);
-            //return RDFConnectionFactory.connectFuseki(sparqlUrl);
+            String url = sparqlUrl;
+            Integer counter=0;
+            Integer counterThreshold = 3;
+            logger.info("Trying to establish a connection to Fuseki server with url " + url);
+            while (counter<counterThreshold) {
+                try{
+                    RDFConnection connection = RDFConnectionFactory.connectFuseki(url);
+                    connection.queryAsk(this.TEST_CONNECTION_STRING);
+                    logger.info("Connection successfully established...");
+                    connection.close();
+                    connection.end();
+                    return RDFConnectionFactory.connectFuseki(url);
+                }
+                catch (QueryExceptionHTTP e) {
+                    logger.info("unable to establish a connection to Fuseki server with url " + url);
+
+                    if (counter < counterThreshold - 1) {
+                        try {
+                            logger.info("retry to establish connection to Fuseki server in 5 seconds");
+                            Thread.sleep(5000);
+                        } catch (InterruptedException ex) {
+                            ex.printStackTrace();
+                        }
+
+                        counter += 1;
+                    } else {
+                        logger.info("stop trying to establish connection ");
+                        throw e;
+                    }
+
+                }
+            }
+
         } else
         if(dataset == null)
         {
             dataset = DatasetFactory.create();
         }
+
         return RDFConnectionFactory.connect(dataset);
     }
 
@@ -159,19 +195,49 @@ public class RepositoryFacade {
     public RDFConnection getNewReadOnlyConnectionToFuseki()
     {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
-            //read only endpoint: host:port/dataset/sparql
-            return RDFConnectionFactory.connectFuseki(sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql");
+            String url = sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql";
+            Integer counter=0;
+            Integer counterThreshold = 3;
+            logger.info("Trying to establish a connection to Fuseki server with url " + url);
+            while (counter<counterThreshold) {
+                try{
+                    //read only endpoint: host:port/dataset/sparql
+                    RDFConnection connection =  RDFConnectionFactory.connectFuseki(url);
+                    connection.queryAsk(this.TEST_CONNECTION_STRING);
+                    logger.info("Connection successfully established...");
+                    connection.close();
+                    connection.end();
+                    return RDFConnectionFactory.connectFuseki(url);
+                }
+                catch (QueryExceptionHTTP e) {
+                    logger.info("unable to establish a connection to Fuseki server with url " + url);
+
+                    if (counter < counterThreshold - 1) {
+                        try {
+                            logger.info("retry to establish connection to Fuseki server in 5 seconds");
+                            Thread.sleep(5000);
+                        } catch (InterruptedException ex) {
+                            ex.printStackTrace();
+                        }
+
+                        counter += 1;
+                    } else {
+                        logger.info("stop trying to establish connection and throw exception ... ");
+                        throw e;
+                    }
+                }
+            }
+
         }
         else
         {
-            if(!writableConnectionWarningPrinted)
-            {
+            if(!writableConnectionWarningPrinted) {
                 logger.warn("Cannot return read-only connection to in-memory dataset. Connection will be writable!");
                 logger.warn("This warning is only printed once.");
                 writableConnectionWarningPrinted = true;
             }
-            return RDFConnectionFactory.connect(dataset);
         }
+        return RDFConnectionFactory.connect(dataset);
     }
 
     /**
@@ -659,21 +725,8 @@ public class RepositoryFacade {
 
         logger.debug("Asking whether admin graph exists yet.");
         boolean graphExists = false;
-        try {
-            graphExists = booleanQuery("ASK WHERE { GRAPH <" + adminGraphUri.toString() + "> {?s ?p ?o .} }");
-        }
-        catch (QueryExceptionHTTP e)
-        {
-            if(e.getCause() instanceof HttpHostConnectException) //Did we get something like a connectionRefused error?
-            {
-                logger.warn("Could not establish connection to " + sparqlUrl + " - changing configuration to use local repository instead");
-                sparqlUrl = "";
-            }
-            else
-            {
-                throw e;
-            }
-        }
+
+        graphExists = booleanQuery("ASK WHERE { GRAPH <" + adminGraphUri.toString() + "> {?s ?p ?o .} }");
 
         if(!graphExists) {
             logger.info("Admin graph does not yet exist. Initializing it with one statement.");

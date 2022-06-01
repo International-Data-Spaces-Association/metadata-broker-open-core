@@ -1,4 +1,30 @@
 # Change log of the MetaDataBroker open core
+## [Release 5.0.0] - 2022-05-23
+### Added
+- The display of Maintainer, Curator, Sovereign and Publisher can now be represented as URI or as an Object.
+- Use more efficient methods to fetch resource from connectors.
+- Add parameters to control the index recreation behavior.
+- Externalize the parameter JWKS_TRUSTEDHOSTS to be in Dockerfile.
+- Add a restriction parameter to control the size of IDS Connectors when Reindexing.
+-  Add deleteResource method signature to Indexing. Update resource handing to only use update-/deleteResource method. Connector updates work with given Connector instead of querying the triple store for now
+- ResourcePersistenceAndIndexing uses full connector object instead of the reduced connector
+
+<!-- ### Changed -->
+
+<!--  ### Deprecated -->
+
+<!--  ### Removed -->
+
+### Fixed
+- Remove a breaking change introduced by Version 5.0.0-SNAPSHOT of the IDS Information Model Java Lib.
+- Add Loggers to count the deletion time at the `ResourcePersistenceAndIndexing` to eliminate deletion delays.
+- Reconstruct "Update" SPARQL query.
+- Upgrade JUnit to version 5.
+
+  
+<!--  ### Security -->
+
+
 
 ## [feature/retryConnectionFuseki] - 12.05.2022
 - Retry connection to Fuseki

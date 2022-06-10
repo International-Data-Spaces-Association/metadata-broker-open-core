@@ -1,5 +1,5 @@
 # Change log of the MetaDataBroker open core
-## [Release 5.0.0] - 2022-05-23
+## [Release 5.0.0] - 2022-06-10
 ### Added
 - The display of Maintainer, Curator, Sovereign and Publisher can now be represented as URI or as an Object.
 - Use more efficient methods to fetch resource from connectors.

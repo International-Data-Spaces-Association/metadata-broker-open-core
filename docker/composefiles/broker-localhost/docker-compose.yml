@@ -10,7 +10,7 @@ services:
     - "80:80"
 
   broker-core:
-    image: registry.gitlab.cc-asp.fraunhofer.de/eis-ids/broker-open/core:latest
+    image: registry.gitlab.cc-asp.fraunhofer.de/eis-ids/broker-open/core:5.0.0
     volumes:
       - /etc/idscert/localhost:/etc/cert/
       #- c:/etc/idscert/localhost:/etc/cert/

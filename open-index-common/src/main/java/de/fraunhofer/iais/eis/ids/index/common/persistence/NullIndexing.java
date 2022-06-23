@@ -18,6 +18,10 @@ public class NullIndexing<T> implements Indexing<T> {
     final private Logger logger = LoggerFactory.getLogger(NullIndexing.class);
 
     @Override
+    public void addResourceAsJson(String resoruceID, String resourceAsJson){
+        logger.info("Add to Resource as JSON-LD index IGNORED.");
+    };
+    @Override
     public void add(T selfDescription) {
         logger.info("Add to index IGNORED.");
     }

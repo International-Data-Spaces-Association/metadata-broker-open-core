@@ -1,7 +1,7 @@
 
 # Change log of the MetaDataBroker open core
 
-## [Release 5.0.1] - 2022-06-24
+## [Release 5.0.1] - 2022-06-30
 ### Added
 - Added a new method in the Abstract class for Elasticsearch Index called "addResourceAsJson". This method is used to **improve** the reindexing. With this method, reindexing can be done with the JSON-LD representation of the Resource.
 - Added a new method called "getResourceIDandAsJSON" in the RepositoryFacade to get the JSON-LD represntation and the ID of the Resource.

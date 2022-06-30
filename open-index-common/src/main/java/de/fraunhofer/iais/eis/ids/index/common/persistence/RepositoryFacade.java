@@ -26,7 +26,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -115,6 +117,26 @@ public class RepositoryFacade {
         this.sparqlUrl = sparqlUrl;
 
         initAdminGraph();
+    }
+    public List<List<String>> getResourceIDandAsJSON(URI connectorURI){
+        List<List<String>> result = new ArrayList<>();
+        ArrayList<QuerySolution> resultSet = selectQuery("PREFIX ids: <https://w3id.org/idsa/core/>\n" +
+                "\n" +
+                "SELECT ?resourceID ?JSON\n" +
+                "WHERE {\n" +
+                "  graph <" + connectorURI + "> {\n" +
+                "    ?resourceID a ids:DataResource.\n" +
+                "    ?resourceID <mdp:indexRepresentation> ?JSON\n" +
+                "  } \n" +
+                "}");
+        var list = resultSet.stream().collect(Collectors.toList());
+        for(QuerySolution resource: list){
+            var temp = new ArrayList<String>();
+            temp.add(resource.get("resourceID").toString());
+            temp.add(resource.get("JSON").toString().replace("\\", "")); //there are \ signs before " signs. That creates parsing error in the elastic
+            result.add(temp);
+        }
+        return result;
     }
 
     /**

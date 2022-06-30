@@ -13,6 +13,13 @@ import de.fraunhofer.iais.eis.Resource;
 public interface Indexing<T> {
 
     /**
+     * Function for adding Resources as JSON-LD to the Elasticsearch Indexing
+     *  @param resoruceID ID of the Resource
+     *  @param resourceAsJson JSON-LD representation of the Resource
+     */
+    void addResourceAsJson(String resoruceID, String resourceAsJson);
+
+    /**
      * Function for adding an infrastructure component, such as a connector, to the index
      * @param object The object to be indexed
      * @throws IOException may be thrown on error

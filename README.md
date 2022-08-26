@@ -36,7 +36,7 @@ In this section, we will provide some guidance as to recommendations for the num
 - **Docker**: version 20.10.7 or later
 - **Docker Compose**: version 1.29.1 or later
 - **OpenSSL**: Version 1.1.1k or later. A valid X.509 certificate, signed by a trusted certification authority, is strongly recommended to avoid warnings about insecure HTTPS connections. Docker must be installed on the target machine.
-- **Identity certificate**: A DAPS certificate which acts like a Keystore of the Broker from [Fraunhofer AISEC](https://www.aisec.fraunhofer.de/en.html) in **JKS** formate.
+- **Identity certificate**: A DAPS certificate which acts like a Keystore of the Broker from [Fraunhofer AISEC](https://www.dataspaces.fraunhofer.de/en/software/identity_provider.html) in **JKS** format.
 - **Java**: Java 11 or later should be installed in your local environment to build the docker image.
 - **Maven**: Maven 3.6.3 or later should be installed in your local environment to build the docker image (execute `mvn -version` to check the successful installation).
 
@@ -45,13 +45,14 @@ This part aims to aid IT administrators or developers in the installation of the
 
 The IDS Metadata Broker consists of several Docker containers as shown in the image below, which need to be orchestrated by docker-compose.
 ![index](https://user-images.githubusercontent.com/38520537/125645191-55307611-1262-421a-97b6-c3b626246556.png)
+**Note:** A video tutorial of the Broker's installation guide is available [here](https://www.youtube.com/watch?v=0zojF4ubEMI&t=864s).
 
 ### 4.1 Prepare The SSL Certificate
 For the SSL certificate, you need to have these two files:
 -  **server.crt:** an x509 certificate, either self-signed or from an official CA
 - **server.key:** the private key for the certificate.
 
-The certificate needs to be of *.crt* format and must have the name *server.crt* and the file for private key should have the name *server.key*. Here is a sample command to create a self-signed certificate, which requires OpenSSL to be installed:
+The certificate needs to be of *.crt* format and must have the name *server.crt* and the file for the private key should have the name *server.key*. Here is a sample command to create a self-signed certificate, which requires OpenSSL to be installed:
 ```sh
 openssl req -newkey rsa:4096 \
             -x509 \
@@ -85,7 +86,7 @@ Once the repository is cloned, the docker-compose file will be found in this pat
 
 	`./docker/composefiles/broker-localhost/docker-compose.yml`
 
-**Step 2.1** Please put the SSL certificate (server.key and server.crt) and the DAPS certificate, for example "isst-broker.jks"; under the same folder which will be mounted in container. 
+**Step 2.1** Please put the SSL certificate (server.key and server.crt) and the DAPS certificate, for example "isst-broker.jks", under the same folder which will be mounted in container. This repository provides a [sample DAPS certificate](https://github.com/International-Data-Spaces-Association/metadata-broker-open-core/blob/master/broker-core/src/main/resources/isstbroker-keystore.jks) to test the interaction with the Broker via Postman collection provided in **Section 4.3**.
 
 **Step 2.2** Provide the correct location of the X.509 certificate created above in the "broker-reverseproxy" and "broker-core" services.
 
@@ -107,7 +108,7 @@ Once the repository is cloned, the docker-compose file will be found in this pat
 		volumes:
 		- c:/etc/ids/cert:/etc/cert/
 		[…]
-Do the same for "broker-core" service.
+Do the same for "broker-core" services.
 
 **Step 2.3** After successful completion of the previous steps, the location of the certificates is mounted to "/etc/cert" of the container. If the name of your DAPS certificate is "isstbroker-keystore.jks", please change the following line in the docker-compose file:
  
@@ -165,9 +166,11 @@ Once you have docker-compose file please follow **Step 4 - 5** in **Section 4.2.
 ### 4.3 Interacting With The IDS Metadata Broker
 The IDS Metadata Broker accepts and sends messages according to the IDS information model. This model uses the Resource Description Framework (RDF) to leverage the power of linked data. Many examples about representations of IDS concepts can be found at [https://github.com/International-Data-Spaces-Association/InformationModel/tree/develop/examples](https://github.com/International-Data-Spaces-Association/InformationModel/tree/develop/examples).
 
-The multipart endpoint of IDS Metadata Broker is “/infrastructure”. If the IDS Metadata Broker is running using docker-compose as mentioned earlier, an HTTP POST request can be sent to interact with it. We provide some example messages, illustrating all core functions of the IDS Metadata Broker in this  [postman collection](https://www.getpostman.com/collections/0a8f223c9141de195795).
+The multipart endpoint of IDS Metadata Broker is “/infrastructure”. If the IDS Metadata Broker is running using docker-compose as mentioned earlier, an HTTP POST or GET request can be sent to interact with it. We provide some example messages, illustrating all core functions of the IDS Metadata Broker in this  [postman collection](https://www.getpostman.com/collections/0a8f223c9141de195795).
 
 In addition to the multipart endpoint, the IDS Metadata Broker also serves a prototypical [IDS-REST](https://www.getpostman.com/collections/01d6bf596f67303c08ce) endpoint at “/catalog”. This endpoint will reach a non-prototype state soon after the final specification of the IDS-REST protocol.
+
+
 
 ## API Description
 

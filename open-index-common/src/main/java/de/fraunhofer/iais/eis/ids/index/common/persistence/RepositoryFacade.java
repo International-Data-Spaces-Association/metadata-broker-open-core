@@ -133,7 +133,7 @@ public class RepositoryFacade {
         for(QuerySolution resource: list){
             var temp = new ArrayList<String>();
             temp.add(resource.get("resourceID").toString());
-            temp.add(resource.get("JSON").toString().replace("\\", "")); //there are \ signs before " signs. That creates parsing error in the elastic
+            temp.add(resource.get("JSON").toString().replace("\\\"", "\"")); //there are \ signs before " signs. That creates parsing error in the elastic
             result.add(temp);
         }
         return result;

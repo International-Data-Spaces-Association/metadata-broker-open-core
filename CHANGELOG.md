@@ -3,7 +3,7 @@
 
 ## [Release 5.0.2] - 2022-09-15
 ### Fixed
-- Updated "getResourceIDandAsJSON" in the RepositoryFacade to get the original Fuseki content. The "replace" function perviously available is now executed inside the "refreshIndex" method.
+- Updated "getResourceIDandAsJSON" in the RepositoryFacade to get the original Fuseki content. The "replace" function previously available is now executed inside the "refreshIndex" method.
 
 ## [Release 5.0.1] - 2022-06-30
 ### Added

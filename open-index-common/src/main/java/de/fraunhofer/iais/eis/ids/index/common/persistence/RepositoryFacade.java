@@ -4,6 +4,7 @@ import de.fraunhofer.iais.eis.Connector;
 import de.fraunhofer.iais.eis.Participant;
 import de.fraunhofer.iais.eis.RejectionReason;
 import de.fraunhofer.iais.eis.ids.component.core.RejectMessageException;
+import de.fraunhofer.iais.eis.ids.index.common.util.FusekiConnectionFactory;
 import de.fraunhofer.iais.eis.ids.jsonld.Serializer;
 import org.apache.http.conn.HttpHostConnectException;
 import org.apache.jena.graph.Node;
@@ -42,6 +43,7 @@ public class RepositoryFacade {
     private final String graphIsActiveUrl = "https://w3id.org/idsa/core/graphIsActive";
     private String sparqlUrl;
     private Dataset dataset;
+    private FusekiConnectionFactory connectionFactory, connectionFactoryReadOnly;
 
     private static boolean writableConnectionWarningPrinted = false;
 
@@ -108,6 +110,9 @@ public class RepositoryFacade {
             dataset = DatasetFactory.create();
         } else {
             logger.info("Setting SPARQL repository to be used: '" + sparqlUrl + "'");
+            connectionFactory = new FusekiConnectionFactory(sparqlUrl);
+            String url = sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql";
+            connectionFactoryReadOnly = new FusekiConnectionFactory(sparqlUrl);
         }
         try {
             this.adminGraphUri = new URI("https://broker.ids.isst.fraunhofer.de/admin");
@@ -167,45 +172,12 @@ public class RepositoryFacade {
     public RDFConnection getNewWritableConnection()
     {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
-            String url = sparqlUrl;
-            Integer counter=0;
-            Integer counterThreshold = 3;
-            logger.info("Trying to establish a connection to Fuseki server with url " + url);
-            while (counter<counterThreshold) {
-                try{
-                    RDFConnection connection = RDFConnectionFactory.connectFuseki(url);
-                    connection.queryAsk(this.TEST_CONNECTION_STRING);
-                    logger.info("Connection successfully established...");
-                    connection.close();
-                    connection.end();
-                    return RDFConnectionFactory.connectFuseki(url);
-                }
-                catch (QueryExceptionHTTP e) {
-                    logger.info("unable to establish a connection to Fuseki server with url " + url);
-
-                    if (counter < counterThreshold - 1) {
-                        try {
-                            logger.info("retry to establish connection to Fuseki server in 5 seconds");
-                            Thread.sleep(5000);
-                        } catch (InterruptedException ex) {
-                            ex.printStackTrace();
-                        }
-
-                        counter += 1;
-                    } else {
-                        logger.info("stop trying to establish connection ");
-                        throw e;
-                    }
-
-                }
-            }
-
+            return (RDFConnection) connectionFactory.getConnection();
         } else
         if(dataset == null)
         {
             dataset = DatasetFactory.create();
         }
-
         return RDFConnectionFactory.connect(dataset);
     }
 
@@ -217,39 +189,7 @@ public class RepositoryFacade {
     public RDFConnection getNewReadOnlyConnectionToFuseki()
     {
         if(sparqlUrl != null && !sparqlUrl.isEmpty()) {
-            String url = sparqlUrl + (sparqlUrl.endsWith("/")? "" : "/") + "sparql";
-            Integer counter=0;
-            Integer counterThreshold = 3;
-            logger.info("Trying to establish a connection to Fuseki server with url " + url);
-            while (counter<counterThreshold) {
-                try{
-                    //read only endpoint: host:port/dataset/sparql
-                    RDFConnection connection =  RDFConnectionFactory.connectFuseki(url);
-                    connection.queryAsk(this.TEST_CONNECTION_STRING);
-                    logger.info("Connection successfully established...");
-                    connection.close();
-                    connection.end();
-                    return RDFConnectionFactory.connectFuseki(url);
-                }
-                catch (QueryExceptionHTTP e) {
-                    logger.info("unable to establish a connection to Fuseki server with url " + url);
-
-                    if (counter < counterThreshold - 1) {
-                        try {
-                            logger.info("retry to establish connection to Fuseki server in 5 seconds");
-                            Thread.sleep(5000);
-                        } catch (InterruptedException ex) {
-                            ex.printStackTrace();
-                        }
-
-                        counter += 1;
-                    } else {
-                        logger.info("stop trying to establish connection and throw exception ... ");
-                        throw e;
-                    }
-                }
-            }
-
+            return (RDFConnection) connectionFactoryReadOnly.getConnection();
         }
         else
         {

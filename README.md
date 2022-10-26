@@ -170,7 +170,15 @@ The multipart endpoint of IDS Metadata Broker is “/infrastructure”. If the I
 
 In addition to the multipart endpoint, the IDS Metadata Broker also serves a prototypical [IDS-REST](https://www.getpostman.com/collections/01d6bf596f67303c08ce) endpoint at “/catalog”. This endpoint will reach a non-prototype state soon after the final specification of the IDS-REST protocol.
 
+## 5. Building and deploying the MetaData-Broker
 
+1. Execute to build the jar files:
+    - `mvn clean package -U -Drevision=<new revision number here>`
+2. To deploy, make sure that the particular credentials for the repositories are provided in the `settings.xml` or via the maven property `-s <path to the settings.xml>`.
+   To deploy the artifacts execute:
+    - to eis-ids-public repository `mvn deploy -DaltDeploymentRepository=eis-public-repo::default::https://maven.iais.fraunhofer.de/artifactory/eis-ids-public -Drevision=<new revision number here>`
+    - to eis-ids-snapshot repository `mvn deploy -DaltDeploymentRepository=eis-snapshot-repo::default::https://maven.iais.fraunhofer.de/artifactory/eis-ids-snapshot  -Drevision=<new revision number here>`
+    - to eis-ids-release repository `mvn deploy -DaltDeploymentRepository=eis-release-repo::default::http://maven.iais.fraunhofer.de/artifactory/eis-ids-release  -Drevision=<new revision number here>`
 
 ## API Description
 

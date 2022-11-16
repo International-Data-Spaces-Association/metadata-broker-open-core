@@ -1,6 +1,11 @@
 
 # Change log of the MetaDataBroker open core
 
+# Change Log for the ids-components
+
+## [Release 5.0.4] - 2022-11-15 
+- integration of the *IDS Information Model Validation and Serialization Provider* release 5.0.4 due to changes of the *International Data Spaces Serializer*
+
 ## [Release 5.0.3] - 2022-11-26
 ### Added
 - Added an update of the handling of a Fuseki server that is not reachable.

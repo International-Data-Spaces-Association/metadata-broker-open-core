@@ -4,7 +4,11 @@
 # Change Log for the ids-components
 
 ## [Release 5.0.4] - 2022-11-15 
-- integration of the *IDS Information Model Validation and Serialization Provider* release 5.0.4 due to changes of the *International Data Spaces Serializer*
+updating dependencies of  
+- *IDS Information Model Validation and Serialization Provider*  to release 5.0.4 
+- *International Data Spaces Serializer* to release 5.0.4
+- *International Data Spaces Components* to release 5.0.4
+- due to bugfixes in der serializer
 
 ## [Release 5.0.3] - 2022-11-26
 ### Added

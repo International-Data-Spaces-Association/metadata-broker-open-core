@@ -190,3 +190,6 @@ see [Broker API in SwaggerHub](https://app.swaggerhub.com/apis/idsa/IDS-Broker/)
 * [Spring Boot](https://projects.spring.io/spring-boot/) - Application Framework
 * [Apache Jena](https://jena.apache.org/documentation/) - Parsing and serializing RDF and Fuseki as triple store for meta data
 
+## Contributions
+IDS Broker has been part of:
+* PLATOON H2020 project funded by the EU commission.

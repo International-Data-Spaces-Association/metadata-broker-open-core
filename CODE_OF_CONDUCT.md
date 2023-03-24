@@ -65,6 +65,30 @@ Project maintainers who do not follow or enforce the Code of Conduct in good
 faith may face temporary or permanent repercussions as determined by other
 members of the project's leadership.
 
+### Release Principles
+
+We recommend the following release principles:
+
+*	Must haves:
+  * Every update comes into its branch with a test or note explaining how it can be tested:
+    * Having a branch for each feature/update keeps a better overview of what is currently going on, what has been  merged, et cetera.
+  *	Relevant changes are documented in the changelog:
+    * Documenting changes in the changelog is essential for users to keep an overview of what is going on and helps with bug fixing after switching to a newer version.
+	* After merging new changes into the main branch, final integration tests should be performed to ensure interoperability with other components:
+    * Final integration tests are an absolute must-have in order to keep live systems running smoothly.
+  *	Only developing into own repositories:
+    * We recommend avoiding developing into customer repositories. You will lose your overview of where a feature is implemented or not.
+*	Should haves:
+  * Every component should have its owner and its release cycle:
+    * An Owner is the person who is in charge of testing new features and putting them in place.
+  * Using multiple Repositories/Forks:
+    * In order to ensure a stable and clean running version, we recommend having 2–3 repositories for each component.
+  * Clean up repositories after merging or not merging branches:
+    * A feature branch should be deleted after it is merged into the main branch. The same applies to branches with a rejected pull request.
+*	Could haves:
+	* Delivering only releases to customers:
+    * Bug fixing on the customer's end should be avoided.
+
 ### Attribution
 
 This Code of Conduct is adapted from the [Contributor Covenant](http://contributor-covenant.org), 

@@ -70,9 +70,11 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
         try {
             //Message is either ConnectorUpdateMessage or ConnectorUnavailableMessage
             if (msg instanceof ConnectorUpdateMessage) {
+            	logger.info("Connector Notification Message: "+msg.toRdf());
                 //Updating existing Connector or registering new Connector
                 if(messageAndPayload.getPayload().isPresent()) {
                     if(messageAndPayload.getMessage().getProperties() != null) {
+                    	logger.info("Checking the type of request sent");
                         //POST is not idempotent. Making sure that, in case POST is used, the connector does not exist yet
                         if (messageAndPayload.getMessage().getProperties().containsKey("https://w3id.org/idsa/core/method")) {
                             String method = messageAndPayload.getMessage().getProperties().get("https://w3id.org/idsa/core/method").toString().replace("\"", "").replace("^^http://www.w3.org/2001/XMLSchema#string", "").toLowerCase();
@@ -83,13 +85,16 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
                                 || repositoryFacade.graphIsActive(((ConnectorUpdateMessage) messageAndPayload.getMessage()).getAffectedConnector().toString()))
                                 {
                                     //TOO_MANY_RESULTS is not exactly an ideal term... No better choice available though
+                                	logger.error("The connector you are posting already exists. To overwrite it please use a PUT request.");
                                     throw new RejectMessageException(RejectionReason.TOO_MANY_RESULTS, new Exception("The connector you are posting already exists. Use PUT instead to overwrite it."));
                                 }
                             }
                         }
                     }
                     //Rewrite URL to match our REST scheme
+                   
                     rewrittenUri = infrastructureComponentStatusHandler.updated(messageAndPayload.getPayload().get());
+                    logger.info("Updated URI is" + rewrittenUri);
                 }
                 else
                 {
@@ -98,6 +103,7 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
             }
             else if (msg instanceof ConnectorUnavailableMessage) {
                 //To unregister, no payload is required
+            	logger.info("Issuer Connector " + messageAndPayload.getMessage().getIssuerConnector());
                 infrastructureComponentStatusHandler.unavailable(messageAndPayload.getMessage().getIssuerConnector());
             }
         }
@@ -105,6 +111,7 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
             if(e instanceof RejectMessageException)
             {
                 //If it already is a RejectMessageException, throw it as-is
+            	logger.error("Rejected Message", e);
                 throw (RejectMessageException) e;
             }
             //For some reason, ConnectExceptions sometimes do not provide an exception message.
@@ -113,24 +120,30 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
             if(e.getMessage() == null)
             {
                 try {
+                	
                     e = new Exception(e.getCause().getMessage());
+                    logger.error("Failed to process message.", e);
                 }
                 catch (NullPointerException ignored)
                 {
                     e = new Exception(e.getClass().getName() + " with empty message.");
+                    logger.error(e.getClass().getName() + " with empty message.");
                 }
             }
             //Some unknown error has occurred, returning an internal error
+            logger.error("Internal Recipient Error "+ RejectionReason.INTERNAL_RECIPIENT_ERROR);
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
 
         try {
             //Let the connector know that the update was successful
+        	
             DefaultSuccessMAP returnValue = new DefaultSuccessMAP(infrastructureComponent.getId(),
                     infrastructureComponent.getOutboundModelVersion(),
                     messageAndPayload.getMessage().getId(),
                     securityTokenProvider.getSecurityTokenAsDAT(),
                     responseSenderUri);
+
             if(rewrittenUri != null)
             {
                 //Attach the rewritten URI to the response, so that the recipient knows under which address the resource can be found
@@ -140,7 +153,8 @@ public class RegistrationHandler extends ValidatingMessageHandler<Infrastructure
         }
         //Thrown in case the broker is unable to obtain its own security token from the DAPS
         catch (TokenRetrievalException e)
-        {
+        { 
+        	logger.error("Message rejected due to internal error");
             throw new RejectMessageException(RejectionReason.INTERNAL_RECIPIENT_ERROR, e);
         }
     }
